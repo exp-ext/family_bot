@@ -1,4 +1,3 @@
-#!/bin/env python3
 # -*- coding: utf-8 -*-
 import re
 import sys
@@ -18,7 +17,7 @@ from telebot import types, TeleBot
 from bs4 import BeautifulSoup
 import holidays
 
-from config import * # your bot config
+from config import *  # your bot config
 
 
 PATH_BOT = f'{os.path.dirname(sys.argv[0])}'
@@ -62,7 +61,7 @@ conn.commit()
 
 
 class ParsingMessege:
-    
+
     __slots__ = ('massege', 'date', 'time', 'type_note')
 
     def __init__(self, message):
@@ -126,11 +125,9 @@ class ScheduleMessage():
 
 
 class MyClass():
-    
+
     def __init__(self, param):
         self.param = param
-
-
 
 
 def get_messege_id(user_id, messege_id, chat_id):
@@ -234,7 +231,7 @@ def callback_inline(call):
         show_joke(message)
     elif call.data == 'joke_many':
         show_joke_many(message)
-    elif call.data == 'add':        
+    elif call.data == 'add':
         msg = bot.send_message(message.chat.id,
                                f'*{call.from_user.first_name}*, введите текст заметки с датой и временем',
                                parse_mode='Markdown')
@@ -369,7 +366,6 @@ def get_geo_coordinates(user_id):
 
 
 def my_current_geoposition(message):
-
     coordinates = get_geo_coordinates(message.from_user.id)
     geo = f"{coordinates[1]},{coordinates[2]}"
 
@@ -401,9 +397,8 @@ def current_weather_and_location(message):
         bot.send_message(message.chat.id, "что-то пошло не так")
         pass
 
+
 # прогноз погоды на 4 дня
-
-
 def weather_forecast(message):
     coordinates = get_geo_coordinates(message.from_user.id)
     try:
@@ -530,8 +525,8 @@ def del_note(message):
 
         if date == None:
             bot.send_message(message.chat.id,
-                            f'*{message.from_user.first_name}*, дата в запросе не найдена! Начните операцию заново.',
-                            parse_mode='Markdown')
+                             f'*{message.from_user.first_name}*, дата в запросе не найдена! Начните операцию заново.',
+                             parse_mode='Markdown')
         else:
             cur.execute(""" SELECT id, task
                             FROM tasks
@@ -546,8 +541,7 @@ def del_note(message):
                 cur.execute("""DELETE FROM tasks WHERE id=?""", (tasks[0],))
                 conn.commit()
                 bot.send_message(message.chat.id,
-                    f"{message.from_user.first_name}, запись *<{tasks[1]}>* на дату {date} удалена", parse_mode='Markdown')
-
+                                 f"{message.from_user.first_name}, запись *<{tasks[1]}>* на дату {date} удалена", parse_mode='Markdown')
 
         cur.execute(""" SELECT MAX(dateid), chatid ,messegeid
                         FROM requests
@@ -781,7 +775,7 @@ def check_note_and_send_message():
     tasks = cur.fetchall()
 
     del_id = []
-    time_zone = pytz.timezone('Europe/Moscow')    
+    time_zone = pytz.timezone('Europe/Moscow')
     time_ahead = datetime.strftime(datetime.now(
         time_zone) + timedelta(hours=4), '%H:%M')
     send_flag = False
@@ -832,10 +826,11 @@ def check_note_and_send_message():
         if dt.today() in ru_holidays:
             bot.send_message(
                 CHAT_ID, f'Господа, поздравляю вас с праздником - {ru_holidays.get(dt.today())}')
-    
+
     if len(del_id) > 0:
-        tuple_del_id = tuple(del_id) if len(del_id)>1 else f'({del_id[0]})'
-        cur.execute("""DELETE FROM tasks WHERE id IN %(list)s ;""" % {"list": tuple_del_id})  
+        tuple_del_id = tuple(del_id) if len(del_id) > 1 else f'({del_id[0]})'
+        cur.execute("""DELETE FROM tasks WHERE id IN %(list)s ;""" %
+                    {"list": tuple_del_id})
         conn.commit()
 
 
