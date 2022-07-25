@@ -1,3 +1,4 @@
+#!/bin/env python3
 # -*- coding: utf-8 -*-
 import re
 import sys
@@ -712,6 +713,26 @@ def add_random_task(message, *args):
     add_todo(date, 'todo', task, message.from_user.id)
     bot.send_message(
         message.chat.id, f'Задача <{choice_task}> для {message.from_user.first_name} добавлена на {date}')
+
+
+# checking control word in user answer
+def check_words_list(list_with_word, answer):
+    for word in list_with_word:
+        if word in answer:
+            return True
+
+
+@bot.message_handler(func=lambda message: True, content_types=['text'])
+def text_ansvers(message):
+    if check_words_list(['прив', 'здрав', 'добро'], message.text.lower()):
+        bot.reply_to(message, random_response_to_word('привет'))
+    elif check_words_list(['делать'], message.text.lower()):
+        bot.reply_to(message, random_response_to_word('делать'))
+    elif check_words_list(['делаешь', 'занимаешься'], message.text.lower()):
+        bot.reply_to(message, random_response_to_word('делаешь'))
+    elif check_words_list(['дела', 'как ты', 'настроен'], message.text.lower()):
+        bot.reply_to(message, random_response_to_word('дела'))
+    return False
 
 
 def check_note_and_send_message():
