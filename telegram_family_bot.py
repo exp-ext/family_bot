@@ -1,25 +1,25 @@
 #!/bin/env python3
 # -*- coding: utf-8 -*-
-import re
-import sys
-import sqlite3
+import difflib
 import os
+import re
+import sqlite3
+import sys
 import time
 from datetime import date as dt
 from datetime import datetime, timedelta
 from multiprocessing.context import Process
 from random import choice
-import difflib
 
+import holidays
 import pytz
 import requests
 import schedule
-from telebot import types, TeleBot
 from bs4 import BeautifulSoup
-import holidays
+from telebot import TeleBot, types
 
-from config import *  # your bot config
-
+from config import (CHAT_ID, ID_ADMIN, ID_CHILDREN, OW_API_ID, TOKEN,
+                    YANDEX_GEO_API)
 
 PATH_BOT = f'{os.path.dirname(sys.argv[0])}'
 
@@ -32,10 +32,10 @@ cur = conn.cursor()
 cur.executescript("""   CREATE TABLE IF NOT EXISTS users(
                         userid INT PRIMARY KEY,
                         fname TEXT,
-                        lname TEXT);            
+                        lname TEXT);
                     CREATE TABLE IF NOT EXISTS requests(
                     dateid INT PRIMARY KEY,
-                    userid INT UNIQUE,            
+                    userid INT UNIQUE,
                     chatid INT,
                     messegeid INT);
                         CREATE TABLE IF NOT EXISTS tasks(
@@ -163,8 +163,13 @@ def help(message):
                  get_note_on_date, get_all_note, get_joke, get_many_joke)
     keyboard.add(where_to_go)
 
-    menu_id = bot.send_message(message.chat.id, f"* 💡 🔽  ГЛАВНОЕ МЕНЮ  🔽 💡 *\nдля пользователя {message.from_user.first_name}",
-                               reply_markup=keyboard, parse_mode='Markdown').message_id
+    menu_text = ('* 💡 🔽  ГЛАВНОЕ МЕНЮ  🔽 💡 \n*'
+                 f'    для пользователя {message.from_user.first_name}')
+
+    menu_id = bot.send_message(message.chat.id,
+                               menu_text,
+                               reply_markup=keyboard,
+                               parse_mode='Markdown').message_id
 
     get_messege_id(message.from_user.id, menu_id, message.chat.id)
 
@@ -173,6 +178,7 @@ def help(message):
 
     add_new_user = (message.from_user.id,
                     message.from_user.first_name,  message.from_user.last_name)
+
     cur.execute("""REPLACE INTO users VALUES(?, ?, ?);""", add_new_user)
     conn.commit()
 
@@ -189,8 +195,10 @@ def location(message):
         text="🛰 моя позиция для группы", callback_data='my_position')
     keyboard.add(weather_per_day, get_weather_for_4_day, get_my_position)
 
-    menu_id = bot.send_message(message.chat.id, f"* 💡 🔽  МЕНЮ ПОГОДЫ  🔽 💡 *",
-                               reply_markup=keyboard, parse_mode='Markdown').message_id
+    menu_id = bot.send_message(message.chat.id,
+                               "* 💡 🔽  МЕНЮ ПОГОДЫ  🔽 💡 *",
+                               reply_markup=keyboard,
+                               parse_mode='Markdown').message_id
 
     chat_id = message.chat.id
     lat = message.location.latitude
@@ -233,24 +241,30 @@ def callback_inline(call):
     elif call.data == 'joke_many':
         show_joke_many(message)
     elif call.data == 'add':
+        req_text = (f'*{call.from_user.first_name}*,'
+                    'введите текст заметки с датой и временем')
         msg = bot.send_message(message.chat.id,
-                               f'*{call.from_user.first_name}*, введите текст заметки с датой и временем',
+                               req_text,
                                parse_mode='Markdown')
 
         get_messege_id(call.from_user.id, msg.message_id, message.chat.id)
 
         bot.register_next_step_handler(msg, add_notes)
     elif call.data == 'del':
+        req_text = (f'*{call.from_user.first_name}*,'
+                    ' введите дату и фрагмент текста заметки для её удаления')
         msg = bot.send_message(message.chat.id,
-                               f'*{call.from_user.first_name}*, введите дату и фрагмент текста заметки для её удаления',
+                               req_text,
                                parse_mode='Markdown')
 
         get_messege_id(call.from_user.id, msg.message_id, message.chat.id)
 
         bot.register_next_step_handler(msg, del_note)
     elif call.data == 'show':
+        req_text = (f'*{call.from_user.first_name}*,'
+                    ' введите нужную дату для отображения заметок')
         msg = bot.send_message(message.chat.id,
-                               f'*{call.from_user.first_name}*, введите нужную дату для отображения заметок',
+                               req_text,
                                parse_mode='Markdown')
 
         get_messege_id(call.from_user.id, msg.message_id, message.chat.id)
@@ -288,41 +302,43 @@ def where_to_go(message):
         next_data = resp.json()
 
         date_today = datetime.strftime(dt.today(), '%Y-%m-%d')
-        text = f'[BCЕ МЕРОПРИЯТИЯ НА СЕГОДНЯ](https://kudago.com/spb/festival/?date={date_today}&hide_online=y&only_free=y)\n\n'
+        text = ('[BCЕ МЕРОПРИЯТИЯ НА СЕГОДНЯ](https://kudago.com/spb/festival/'
+                f'?date={date_today}&hide_online=y&only_free=y)\n\n')
 
         excluded_list = ['197880', '198003', '187745', '187466', '187745']
 
         for item in next_data['results']:
             if item['id'] not in excluded_list:
-                text += f"- {item['title'].capitalize()} [>>>](https://kudago.com/spb/event/{item['slug']}/)\n"
+                text += (f"- {item['title'].capitalize()} [>>>]"
+                         f"(https://kudago.com/spb/event/{item['slug']}/)\n")
                 text += '-------------\n'
 
         bot.send_message(message.chat.id, text, parse_mode='Markdown')
 
-    except Exception as E:
-        bot.send_message(message.chat.id, f'ошибочка вышла - {E}')
+    except Exception as exc:
+        bot.send_message(message.chat.id, f'ошибочка вышла - {exc}')
 
 
 @bot.message_handler(commands=['help_locatoin'])
 def help_locatoin(message):
-    try:
-        keyboard = types.ReplyKeyboardMarkup(
-            row_width=1, resize_keyboard=True, input_field_placeholder="\( ' _|_ ' )/")
-        button_geo = types.KeyboardButton(
-            text="☀️ получить погоду и 👣 моё местоположение", request_location=True)
-        keyboard.add(button_geo)
-        bot.send_message(
-            message.chat.id, 'появилась кнопочка погоды по Вашим координатам', reply_markup=keyboard)
-        message_id = message.message_id
-        bot.delete_message(message.chat.id, int(message_id))
-    except:
-        message_id = message.message_id
-        bot.delete_message(message.chat.id, int(message_id))
+
+    keyboard = types.ReplyKeyboardMarkup(row_width=1,
+                                         resize_keyboard=True)
+    button_geo = types.KeyboardButton(
+        text="☀️ получить погоду и 👣 моё местоположение",
+        request_location=True)
+
+    keyboard.add(button_geo)
+    bot.send_message(message.chat.id,
+                     'появилась кнопочка погоды по Вашим координатам',
+                     reply_markup=keyboard)
+    message_id = message.message_id
+    bot.delete_message(message.chat.id, int(message_id))
 
 
 # api geocode-maps.yandex для текущего местонахождения
 def get_address_from_coords(coords):
-    PARAMS = {
+    params = {
         "apikey": YANDEX_GEO_API,
         "format": "json",
         "lang": "ru_RU",
@@ -331,19 +347,24 @@ def get_address_from_coords(coords):
     }
     try:
         r = requests.get(
-            url="https://geocode-maps.yandex.ru/1.x/", params=PARAMS)
+            url="https://geocode-maps.yandex.ru/1.x/", params=params)
+
         json_data = r.json()
-        address_str = json_data["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"][
-            "metaDataProperty"]["GeocoderMetaData"]["AddressDetails"]["Country"]["AddressLine"]
-        return address_str
-    except Exception:
-        return "error"
+
+        return json_data["response"]["GeoObjectCollection"][
+            "featureMember"][0]["GeoObject"][
+            "metaDataProperty"]["GeocoderMetaData"][
+            "AddressDetails"]["Country"]["AddressLine"]
+
+    except Exception as exc:
+        return exc
 
 
 def status_weather(description_weather):
     if description_weather == "ясно":
         return " ☀️ ясно"
-    elif description_weather == "переменная облачность" or description_weather == "небольшая облачность":
+    elif (description_weather == "переменная облачность" or
+          description_weather == "небольшая облачность"):
         return " 🌤 переменная облачность"
     elif description_weather == "облачно с прояснениями":
         return " ⛅️ облачно с прояснениями"
@@ -362,41 +383,59 @@ def get_geo_coordinates(user_id):
                     FROM geolocation
                     WHERE userid=?
                     ;""", (user_id,))
-    geo = cur.fetchone()
-    return geo
+
+    return cur.fetchone()
 
 
 def my_current_geoposition(message):
     coordinates = get_geo_coordinates(message.from_user.id)
     geo = f"{coordinates[1]},{coordinates[2]}"
 
-    bot.send_message(CHAT_ID, f"Согласно полученных геокоординат, {message.from_user.first_name} находится:\n\
-[{get_address_from_coords(geo)}](https://yandex.ru/maps/?whatshere[point]={geo}&whatshere[zoom]=17)\n", parse_mode='Markdown')
+    send_text = ("Согласно полученных геокоординат, "
+                 f"{message.from_user.first_name} находится:\n"
+                 f"[{get_address_from_coords(geo)}]"
+                 "(https://yandex.ru/maps/?whatshere[point]="
+                 f"{geo}&whatshere[zoom]=17)\n")
+
+    bot.send_message(CHAT_ID, send_text, parse_mode='Markdown')
 
 
 def current_weather_and_location(message):
     coordinates = get_geo_coordinates(message.from_user.id)
     try:
         res = requests.get("http://api.openweathermap.org/data/2.5/weather",
-                           params={'lat': coordinates[2], 'lon': coordinates[1], 'units': 'metric', 'lang': 'ru', 'APPID': OW_API_ID})
+                           params={'lat': coordinates[2],
+                                   'lon': coordinates[1],
+                                   'units': 'metric',
+                                   'lang': 'ru',
+                                   'APPID': OW_API_ID})
         data = res.json()
 
         wind_directions = ("Сев", "Сев-Вост", "Вост", "Юго-Вост",
                            "Южный", "Юго-Зап", "Зап", "Сев-Зап")
         direction = int(int((data['wind']['speed']) + 22.5) // 45 % 8)
+        wind_speed = int(data['wind']['speed'])
+        pressure = round(int(data['main']['pressure']*0.750063755419211))
 
-        bot.send_message(message.chat.id, f"По данным ближайшего метеоцентра сейчас на улице:\n\
-~ *{status_weather(data['weather'][0]['description'])}* ~\n\
-     - 💧 влажность: *{data['main']['humidity']}*% \n \
-    - ⚗️ давление:   *{round(int(data['main']['pressure']*0.750063755419211))}*мм рт.ст\n\
-     - 💨 ветер: *{int(data['wind']['speed'])}м/сек ⤗ {wind_directions[direction]}*\n\
-~ 🌡 текущая: *{'{0:+3.0f}'.format(data['main']['temp'])}*°C\n\
-     - 🥶 мин:  *{'{0:+3.0f}'.format(data['main']['temp_min'])}*°C\n\
-     - 🥵 макс: *{'{0:+3.0f}'.format(data['main']['temp_max'])}*°C\n\
-        \n", parse_mode='Markdown')
-    except:
-        bot.send_message(message.chat.id, "что-то пошло не так")
-        pass
+        weather = [
+            f" *{status_weather(data['weather'][0]['description'])}*",
+            f" 💧 влажность: *{data['main']['humidity']}*%",
+            f" ⚗️ давление:   *{pressure}*мм рт.ст",
+            f" 💨 ветер: *{wind_speed}м/сек ⤗ {wind_directions[direction]}*",
+            f" 🌡 текущая: *{'{0:+3.0f}'.format(data['main']['temp'])}*°C",
+            f" 🥶 мин:  *{'{0:+3.0f}'.format(data['main']['temp_min'])}*°C",
+            f" 🥵 макс: *{'{0:+3.0f}'.format(data['main']['temp_max'])}*°C"
+        ]
+
+        st = "По данным ближайшего метеоцентра сейчас на улице:\n"
+        max_len = max(len(x) for x in weather)
+        for item in weather:
+            st += (f'{item.rjust(max_len, "~")}\n')
+
+        bot.send_message(message.chat.id, st, parse_mode='Markdown')
+
+    except Exception as exc:
+        bot.send_message(message.chat.id, f'ошибочка вышла - {exc}')
 
 
 # прогноз погоды на 4 дня
@@ -404,7 +443,11 @@ def weather_forecast(message):
     coordinates = get_geo_coordinates(message.from_user.id)
     try:
         res = requests.get("http://api.openweathermap.org/data/2.5/forecast?",
-                           params={'lat': coordinates[2], 'lon': coordinates[1], 'units': 'metric', 'lang': 'ru', 'APPID': OW_API_ID})
+                           params={'lat': coordinates[2],
+                                   'lon': coordinates[1],
+                                   'units': 'metric',
+                                   'lang': 'ru',
+                                   'APPID': OW_API_ID})
         data = res.json()
 
         sunrise_time = datetime.utcfromtimestamp(
@@ -412,15 +455,18 @@ def weather_forecast(message):
         sunset_time = datetime.utcfromtimestamp(
             int(data['city']['sunset']) + int(data['city']['timezone']))
 
-        text_weather = f"Прогноз в месте с названием\n*{data['city']['name']}*:\n"
+        city = data['city']['name']
+        text_weather = f"Прогноз в месте с названием\n*{city}*:\n"
+
         for record in range(0, 40, 8):
             temp_max_min_day = []
             temp_max_min_night = []
             text_weather += f"*{data['list'][record]['dt_txt'][:10]}*\n".rjust(
                 25, '~')
             text_weather += f"*{status_weather(data['list'][record]['weather'][0]['description'])}*\n"
+
             for i in range(40):
-                if data['list'][i]['dt_txt'][:10] == data['list'][record]['dt_txt'][:10]:
+                if (data['list'][i]['dt_txt'][:10] == data['list'][record]['dt_txt'][:10]):
                     if sunset_time.hour > int(data['list'][i]['dt_txt'][11:13]) > sunrise_time.hour:
                         temp_max_min_day.append(
                             data['list'][i]['main']['temp_min'])
@@ -432,16 +478,18 @@ def weather_forecast(message):
                         temp_max_min_night.append(
                             data['list'][i]['main']['temp_max'])
             if len(temp_max_min_day) > 0:
-                text_weather += f"🌡🌞 *{'{0:+3.0f}'.format(max(temp_max_min_day))}* ... *{'{0:+3.0f}'.format(min(temp_max_min_day))}*°C\n"
+                text_weather += (f"🌡🌞 *{'{0:+3.0f}'.format(max(temp_max_min_day))}* "
+                                 f"... *{'{0:+3.0f}'.format(min(temp_max_min_day))}*°C\n")
             if len(temp_max_min_night) > 0:
-                text_weather += f"      🌙 *{'{0:+3.0f}'.format(max(temp_max_min_night))}* ... *{'{0:+3.0f}'.format(min(temp_max_min_night))}*°C\n"
+                text_weather += (f"      🌙 *{'{0:+3.0f}'.format(max(temp_max_min_night))}* "
+                                 f"... *{'{0:+3.0f}'.format(min(temp_max_min_night))}*°C\n")
             text_weather += f"давление *{int(data['list'][record]['main']['pressure']*0.750063755419211)}*мм рт.ст\n"
         text_weather += "-\n".rjust(30, '-')
         text_weather += f"      ВОСХОД в *{sunrise_time.strftime('%H:%M')}*\n"
         text_weather += f"      ЗАКАТ     в *{sunset_time.strftime('%H:%M')}*"
         bot.send_message(message.chat.id, text_weather, parse_mode='Markdown')
-    except Exception as E:
-        bot.send_message(message.chat.id, f'ошибочка вышла - {E}')
+    except Exception as exc:
+        bot.send_message(message.chat.id, f'ошибочка вышла - {exc}')
         pass
 
 
@@ -483,25 +531,37 @@ def add_notes(message):
         task = pars_mess.massege
         user_id = message.from_user.id
 
-        if date == None:
+        if date is None:
+            text_send = (
+                f'Дата в запросе *<{command_text}>* '
+                'не найдена, напоминание не записано'
+                        )
             bot.send_message(message.chat.id,
-                             f'Дата в запросе *<{command_text}>* не найдена, напоминание не записано',
-                             parse_mode='Markdown')
+                             text_send, parse_mode='Markdown')
 
         elif add_todo(date, type_note, task, user_id, t_time):
+            text_send = (
+                'Есть более чем на 61% схожая запись на дату'
+                f' *{date}*,\nсообщение *<{task}>* не добавлено'
+                        )
             bot.send_message(message.chat.id,
-                             f'Есть более чем на 61% схожая запись на дату *{date}*,\nсообщение *<{task}>* не добавлено',
-                             parse_mode='Markdown')
+                             text_send, parse_mode='Markdown')
         else:
             if type_note == 'todo':
+                text_send = (
+                    f'{message.from_user.first_name}, напоминание, *<{task}>* '
+                    'добавлена на дату <{date}> на время <{t_time}>'
+                            )
                 bot.send_message(message.chat.id,
-                                 f'{message.from_user.first_name}, напоминание, *<{task}>* добавлена на дату <{date}> на время <{t_time}>',
-                                 parse_mode='Markdown')
+                                 text_send, parse_mode='Markdown')
 
             elif type_note == 'birthday':
+                text_send = (
+                    f'{message.from_user.first_name}, ежегодное '
+                    f'напоминание о *<{task}>* добавлена на дату <{date}>'
+                            )
                 bot.send_message(message.chat.id,
-                                 f'{message.from_user.first_name}, ежегодное напоминание о *<{task}>* добавлена на дату <{date}>',
-                                 parse_mode='Markdown')
+                                 text_send, parse_mode='Markdown')
 
         cur.execute(""" SELECT MAX(dateid), chatid, messegeid
                         FROM requests
@@ -513,8 +573,8 @@ def add_notes(message):
         message_id = message.message_id
         bot.delete_message(message.chat.id, message_id)
 
-    except Exception as E:
-        bot.send_message(message.chat.id, f'ошибочка вышла - {E}')
+    except Exception as exc:
+        bot.send_message(message.chat.id, f'ошибочка вышла - {exc}')
 
 
 def del_note(message):
@@ -524,10 +584,12 @@ def del_note(message):
         date = pars_mess.date
         task = pars_mess.massege
 
-        if date == None:
+        if date is None:
+            send_text = (
+                f'*{message.from_user.first_name}*, '
+                'дата в запросе не найдена! Начните операцию заново.')
             bot.send_message(message.chat.id,
-                             f'*{message.from_user.first_name}*, дата в запросе не найдена! Начните операцию заново.',
-                             parse_mode='Markdown')
+                             send_text, parse_mode='Markdown')
         else:
             cur.execute(""" SELECT id, task
                             FROM tasks
@@ -535,14 +597,22 @@ def del_note(message):
                         ;""", (date, task))
             tasks = cur.fetchone()
 
-            if tasks == None:
-                bot.send_message(
-                    message.chat.id, f'{message.from_user.first_name}, нет заметок с текстом *<{task}>* на эту дату!')
+            if tasks is None:
+                send_text = (
+                    f'{message.from_user.first_name}, '
+                    f'нет заметок с текстом *<{task}>* на эту дату!'
+                )
+                bot.send_message(message.chat.id,
+                                 send_text, parse_mode='Markdown')
             else:
                 cur.execute("""DELETE FROM tasks WHERE id=?""", (tasks[0],))
                 conn.commit()
+                send_text = (
+                    f"{message.from_user.first_name}, "
+                    f"запись *<{tasks[1]}>* на дату {date} удалена")
+
                 bot.send_message(message.chat.id,
-                                 f"{message.from_user.first_name}, запись *<{tasks[1]}>* на дату {date} удалена", parse_mode='Markdown')
+                                 send_text, parse_mode='Markdown')
 
         cur.execute(""" SELECT MAX(dateid), chatid ,messegeid
                         FROM requests
@@ -554,8 +624,8 @@ def del_note(message):
         message_id = message.message_id
         bot.delete_message(message.chat.id, int(message_id))
 
-    except Exception as E:
-        bot.send_message(message.chat.id, f'ошибочка вышла - {E}')
+    except Exception as exc:
+        bot.send_message(message.chat.id, f'ошибочка вышла - {exc}')
         pass
 
 
@@ -565,10 +635,15 @@ def show_note_on_date(message):
     date = pars_mess.date
     date_every_year = '.'.join([date.split('.')[0], date.split('.')[1]])
 
-    if date == None:
-        bot.send_message(message.chat.id,
-                         f'*{message.from_user.first_name}*, дата в запросе не найдена! Начните операцию сначала.',
-                         parse_mode='Markdown')
+    if date is None:
+        send_text = (
+            f'*{message.from_user.first_name}*, '
+            'дата в запросе не найдена! Начните операцию сначала.'
+        )
+        bot.send_message(
+            message.chat.id,
+            send_text,
+            parse_mode='Markdown')
     else:
         cur.execute(""" SELECT date, type, task
                         FROM tasks
@@ -576,9 +651,12 @@ def show_note_on_date(message):
                     ;""", (date_every_year, date))
         tasks = cur.fetchall()
 
-        text_notes = f'*{message.from_user.first_name}, на {date} запланировано:*\n'
+        text_notes = (f'*{message.from_user.first_name}, '
+                      'на {date} запланировано:*\n')
         send_note = False
-        text_birthday = f'*{message.from_user.first_name}, на выбранную дату {date} найдено ежегодное напоминание:*\n'
+        text_birthday = (
+            f'*{message.from_user.first_name}, '
+            'на выбранную дату {date} найдено ежегодное напоминание:*\n')
         send_birthday = False
 
         for item in tasks:
@@ -621,22 +699,24 @@ def sort_date(x):
 
 def show_all_notes(message):
     note = []
-    cur.execute(""" SELECT date, task
-                    FROM tasks
-                    WHERE type='todo' AND task NOT LIKE ('%' || 'с апогеем' || '%')
-                ;""")
+    cur.execute(
+        """ SELECT date, task
+            FROM tasks
+            WHERE type='todo' AND task NOT LIKE ('%' || 'с апогеем' || '%')
+            ;""")
     tasks = cur.fetchall()
 
     for item in tasks:
         note.append(f'{item[0]} - {item[1]}')
 
     note.sort(key=sort_date)
-    noteSort = f'*{message.from_user.first_name}, согласно запроса, в базе найдено:*\n'
+    note_sort = (f'*{message.from_user.first_name}, '
+                 'согласно запроса, в базе найдено:*\n')
 
     for n in note:
-        noteSort = noteSort + f'{n}\n'
+        note_sort = note_sort + f'{n}\n'
 
-    bot.send_message(message.chat.id, noteSort, parse_mode='Markdown')
+    bot.send_message(message.chat.id, note_sort, parse_mode='Markdown')
 
 
 def show_all_birthdays(message):
@@ -651,12 +731,13 @@ def show_all_birthdays(message):
         note.append(f'{item[0]} - {item[1]}')
 
     note.sort(key=lambda x: int(f'{x[:5].split(".")[1]}{x[:5].split(".")[0]}'))
-    noteSort = f'*{message.from_user.first_name}, согласно Вашего запроса, найдены ежегодные напоминания:*\n'
+    note_sort = (f'*{message.from_user.first_name}, '
+                 'согласно Вашего запроса, найдены ежегодные напоминания:*\n')
 
     for n in note:
-        noteSort = noteSort + f'{n}\n'
+        note_sort = note_sort + f'{n}\n'
 
-    bot.send_message(message.chat.id, noteSort, parse_mode='Markdown')
+    bot.send_message(message.chat.id, note_sort, parse_mode='Markdown')
 
 
 def joke_parsing(id_user, all=False):
@@ -671,7 +752,7 @@ def joke_parsing(id_user, all=False):
         joke = x.getText().strip().split('\n')[0]
         response_list.append(joke)
         response_all = ''
-    if all == False:
+    if not all:
         return choice(response_list)
     else:
         for x in response_list:
@@ -683,18 +764,18 @@ def show_joke(message):
     try:
         id_user = message.chat.id
         bot.send_message(message.chat.id, joke_parsing(id_user))
-    except:
-        bot.send_message(
-            message.chat.id, 'похоже сломался сайтик с анекдотами')
+    except Exception as exc:
+        bot.send_message(message.chat.id, f'ошибочка вышла - {exc}')
+        pass
 
 
 def show_joke_many(message):
     try:
         id_user = message.chat.id
         bot.send_message(message.chat.id, joke_parsing(id_user, all=True))
-    except:
-        bot.send_message(
-            message.chat.id, 'похоже сломался сайтик с анекдотами')
+    except Exception as exc:
+        bot.send_message(message.chat.id, f'ошибочка вышла - {exc}')
+        pass
 
 
 def random_response_to_word(word):
@@ -708,11 +789,17 @@ def random_response_to_word(word):
 
 def add_random_task(message, *args):
     choice_task = random_response_to_word('random')
-    task = f'задание "{choice_task}" возложено на {message.from_user.first_name}'
+    task = (
+        f'задание "{choice_task}" '
+        f'возложено на {message.from_user.first_name}'
+    )
     date = datetime.strftime(dt.today() + timedelta(days=1), '%d.%m.%Y')
     add_todo(date, 'todo', task, message.from_user.id)
     bot.send_message(
-        message.chat.id, f'Задача <{choice_task}> для {message.from_user.first_name} добавлена на {date}')
+        message.chat.id,
+        (f'Задача <{choice_task}> для '
+         f'{message.from_user.first_name} добавлена на {date}')
+    )
 
 
 # checking control word in user answer
@@ -745,7 +832,7 @@ def check_note_and_send_message():
                 ;""")
     last_time_to_check = cur.fetchone()
 
-    if last_time_to_check == None:
+    if last_time_to_check is None:
         last_time_to_check = 0
     else:
         last_time_to_check = last_time_to_check[0]
@@ -825,8 +912,9 @@ def check_note_and_send_message():
 
         ru_holidays = holidays.RU()
         if dt.today() in ru_holidays:
+            hd = ru_holidays.get(dt.today())
             bot.send_message(
-                CHAT_ID, f'Господа, поздравляю вас с праздником - {ru_holidays.get(dt.today())}')
+                CHAT_ID, f'Господа, поздравляю вас с праздником - {hd}')
 
     if len(del_id) > 0:
         tuple_del_id = tuple(del_id) if len(del_id) > 1 else f'({del_id[0]})'
