@@ -562,7 +562,7 @@ def add_notes(message):
             bot.send_message(message.chat.id,
                              text_send, parse_mode='Markdown')
 
-        elif pars_mess.add_todo(user_id):
+        elif pars_mess.add_todo(user_id) is False:
             text_send = (
                 'Есть более чем на 61% схожая запись на дату'
                 f' *{date}*,\nсообщение *<{task}>* не добавлено'
