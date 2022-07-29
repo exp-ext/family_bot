@@ -62,10 +62,11 @@ conn.commit()
 
 
 class ParsingMessege:
-
+    """Разбираем сообщение на комплектующие."""
     __slots__ = ('massege', 'date', 'time', 'type_note')
 
-    def __init__(self, message):
+    def __init__(self,
+                 message: str) -> None:
         type_note = 'todo'
         if re.search(r'\d+[./-]\d+[./-]\d+', message):
             date_found = re.search(r'\d+[./-]\d+[./-]\d+', message).group()
@@ -79,15 +80,18 @@ class ParsingMessege:
             date = datetime(int(year), int(date_found.split(".")[
                             1]), int(date_found.split(".")[0]))
             date_str = datetime.strftime(date, '%d.%m.%Y')
+
         elif re.search(r'\d+[./-]\d+', message):
             date_found = re.search(r'\d+[./-]\d+', message).group()
             date = datetime(2000, int(date_found.split(
                 ".")[1]), int(date_found.split(".")[0]))
             date_str = datetime.strftime(date, '%d.%m')
             type_note = 'birthday'
+
         elif re.search(r'[Сс]егодня', message):
             date_found = re.search(r'[Сс]егодня', message).group()
             date_str = datetime.strftime(dt.today(), '%d.%m.%Y')
+
         elif re.search(r'[Зз]автра', message):
             date_found = re.search(r'[Зз]автра', message).group()
             date_str = datetime.strftime(
@@ -101,7 +105,6 @@ class ParsingMessege:
             time = datetime(2000, 1, 1, int(time_found.split(":")[
                             0]), int(time_found.split(":")[1]))
             time_str = datetime.strftime(time, '%H:%M')
-
         else:
             time_str = '07:15'
 
@@ -112,9 +115,31 @@ class ParsingMessege:
         self.time = time_str
         self.type_note = type_note
 
+    def add_todo(self, user_id: int) -> bool:
+        """Добавляем задачу в БД."""
+        cur.execute(""" SELECT id, date, time, task
+                        FROM tasks
+                        WHERE date=?
+                    ;""", (self.date,))
+        tasks = cur.fetchall()
+
+        if len(tasks) > 0:
+            for item in tasks:
+                simil = similarity(item[3], self.massege)
+                if simil > 0.618:
+                    return False
+        id = round(time.time() * 100000)
+        new_tasks = (id, self.date, self.time,
+                     self.type_note, self.massege, user_id)
+
+        cur.execute(
+            """INSERT INTO tasks VALUES(?, ?, ?, ?, ?, ?);""",
+            new_tasks)
+        conn.commit()
+        return True
+
 
 class ScheduleMessage():
-
     def try_send_schedule():
         while True:
             schedule.run_pending()
@@ -125,13 +150,8 @@ class ScheduleMessage():
         p1.start()
 
 
-class MyClass():
-
-    def __init__(self, param):
-        self.param = param
-
-
-def get_messege_id(user_id, messege_id, chat_id):
+def replace_messege_id(user_id: int, messege_id: int, chat_id: int) -> None:
+    """Заменяем последний ID сообщения user в БД."""
     iddate = round(time.time() * 100000)
     new_request = (iddate, user_id, chat_id, messege_id)
     cur.execute("REPLACE INTO requests VALUES(?, ?, ?, ?);", new_request)
@@ -140,7 +160,9 @@ def get_messege_id(user_id, messege_id, chat_id):
 
 @bot.message_handler(commands=['help'])
 def help(message):
+    """Выводим кнопки основного меню на экран."""
     keyboard = types.InlineKeyboardMarkup(row_width=2)
+
     add_note = types.InlineKeyboardButton(
         text="💬 добавить запись", callback_data='add')
     del_note = types.InlineKeyboardButton(
@@ -171,7 +193,7 @@ def help(message):
                                reply_markup=keyboard,
                                parse_mode='Markdown').message_id
 
-    get_messege_id(message.from_user.id, menu_id, message.chat.id)
+    replace_messege_id(message.from_user.id, menu_id, message.chat.id)
 
     message_id = message.message_id
     bot.delete_message(message.chat.id, message_id)
@@ -185,7 +207,7 @@ def help(message):
 
 @bot.message_handler(content_types=['location'])
 def location(message):
-
+    """Кнопки меню погоды в только личном чате с ботом"""
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     weather_per_day = types.InlineKeyboardButton(
         text="🌈 погода сейчас", callback_data='weather_per_day')
@@ -204,7 +226,7 @@ def location(message):
     lat = message.location.latitude
     lon = message.location.longitude
 
-    get_messege_id(message.from_user.id, menu_id, chat_id)
+    replace_messege_id(message.from_user.id, menu_id, chat_id)
 
     iddate = round(time.time() * 100000)
     geo = (iddate, message.from_user.id, lon, lat)
@@ -217,6 +239,7 @@ def location(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
+    """Распределяем функции согласно нажатой кнопки."""
     message = call.message
 
     cur.execute(""" SELECT MAX(dateid), chatid, messegeid
@@ -247,7 +270,7 @@ def callback_inline(call):
                                req_text,
                                parse_mode='Markdown')
 
-        get_messege_id(call.from_user.id, msg.message_id, message.chat.id)
+        replace_messege_id(call.from_user.id, msg.message_id, message.chat.id)
 
         bot.register_next_step_handler(msg, add_notes)
     elif call.data == 'del':
@@ -257,7 +280,7 @@ def callback_inline(call):
                                req_text,
                                parse_mode='Markdown')
 
-        get_messege_id(call.from_user.id, msg.message_id, message.chat.id)
+        replace_messege_id(call.from_user.id, msg.message_id, message.chat.id)
 
         bot.register_next_step_handler(msg, del_note)
     elif call.data == 'show':
@@ -267,7 +290,7 @@ def callback_inline(call):
                                req_text,
                                parse_mode='Markdown')
 
-        get_messege_id(call.from_user.id, msg.message_id, message.chat.id)
+        replace_messege_id(call.from_user.id, msg.message_id, message.chat.id)
 
         bot.register_next_step_handler(msg, show_note_on_date)
     elif call.data == 'where_to_go':
@@ -277,15 +300,15 @@ def callback_inline(call):
         weather_forecast(message)
     elif call.data == 'weather_per_day':
         message.from_user.id = call.from_user.id
-        current_weather_and_location(message)
+        current_weather(message)
     elif call.data == 'my_position':
         message.from_user.first_name = call.from_user.first_name
         message.from_user.id = call.from_user.id
         my_current_geoposition(message)
 
 
-# api kudago.com для списка событий в СПб
 def where_to_go(message):
+    """Опрос api kudago.com с формированием списка событий в СПб."""
     try:
         date_yesterday = dt.today() - timedelta(days=1)
         date_tomorrow = dt.today() + timedelta(days=1)
@@ -321,6 +344,7 @@ def where_to_go(message):
 
 @bot.message_handler(commands=['help_locatoin'])
 def help_locatoin(message):
+    """Создаём кнопку для получения геокоординат в его личном чате."""
 
     keyboard = types.ReplyKeyboardMarkup(row_width=1,
                                          resize_keyboard=True)
@@ -336,8 +360,8 @@ def help_locatoin(message):
     bot.delete_message(message.chat.id, int(message_id))
 
 
-# api geocode-maps.yandex для текущего местонахождения
-def get_address_from_coords(coords):
+def get_address_from_coords(coords: str) -> str:
+    """Опрос api geocode-maps.yandex для получения адреса местонахождения."""
     params = {
         "apikey": YANDEX_GEO_API,
         "format": "json",
@@ -360,34 +384,31 @@ def get_address_from_coords(coords):
         return exc
 
 
-def status_weather(description_weather):
-    if description_weather == "ясно":
-        return " ☀️ ясно"
-    elif (description_weather == "переменная облачность" or
-          description_weather == "небольшая облачность"):
-        return " 🌤 переменная облачность"
-    elif description_weather == "облачно с прояснениями":
-        return " ⛅️ облачно с прояснениями"
-    elif description_weather == "пасмурно":
-        return " ☁️ пасмурно"
-    elif description_weather == "небольшой дождь":
-        return " 🌦 небольшой дождь"
-    elif description_weather == "сильный дождь":
-        return " 🌧 сильный дождь"
-    else:
-        return description_weather
+def status_weather(description_weather: str) -> str:
+    """Добавление картинки в описание."""
+    dict_weather = {
+        'ясно': ' ☀️ ясно',
+        'переменная облачность': ' 🌤 переменная облачность',
+        'небольшая облачность': ' 🌤 переменная облачность',
+        'облачно с прояснениями': ' ⛅️ облачно с прояснениями',
+        'пасмурно': ' ☁️ пасмурно',
+        'небольшой дождь': ' 🌦 небольшой дождь',
+        'сильный дождь': ' 🌧 сильный дождь',
+    }
+    return dict_weather[description_weather]
 
 
-def get_geo_coordinates(user_id):
+def get_geo_coordinates(user_id: int) -> tuple:
+    """Считывание последних геокоординат User из БД."""
     cur.execute(""" SELECT MAX(iddate), longitude, latitude
                     FROM geolocation
                     WHERE userid=?
                     ;""", (user_id,))
-
     return cur.fetchone()
 
 
 def my_current_geoposition(message):
+    """Вывод адреса местонахождения в группу."""
     coordinates = get_geo_coordinates(message.from_user.id)
     geo = f"{coordinates[1]},{coordinates[2]}"
 
@@ -400,7 +421,8 @@ def my_current_geoposition(message):
     bot.send_message(CHAT_ID, send_text, parse_mode='Markdown')
 
 
-def current_weather_and_location(message):
+def current_weather(message):
+    """Вывод погоды по текущим геокоординатам."""
     coordinates = get_geo_coordinates(message.from_user.id)
     try:
         res = requests.get("http://api.openweathermap.org/data/2.5/weather",
@@ -438,8 +460,8 @@ def current_weather_and_location(message):
         bot.send_message(message.chat.id, f'ошибочка вышла - {exc}')
 
 
-# прогноз погоды на 4 дня
 def weather_forecast(message):
+    """Вывод прогноза погоды на 4 дня по последним User геокоординатам."""
     coordinates = get_geo_coordinates(message.from_user.id)
     try:
         res = requests.get("http://api.openweathermap.org/data/2.5/forecast?",
@@ -461,29 +483,48 @@ def weather_forecast(message):
         for record in range(0, 40, 8):
             temp_max_min_day = []
             temp_max_min_night = []
-            text_weather += f"*{data['list'][record]['dt_txt'][:10]}*\n".rjust(
-                25, '~')
-            text_weather += f"*{status_weather(data['list'][record]['weather'][0]['description'])}*\n"
+
+            date_j = data['list'][record]['dt_txt'][:10]
+            text_weather += f"*{date_j}*\n".rjust(25, '~')
+
+            description = status_weather(
+                data['list'][record]['weather'][0]['description'])
+            text_weather += f"*{description}*\n"
 
             for i in range(40):
-                if (data['list'][i]['dt_txt'][:10] == data['list'][record]['dt_txt'][:10]):
-                    if sunset_time.hour > int(data['list'][i]['dt_txt'][11:13]) > sunrise_time.hour:
+                if (data['list'][i]['dt_txt'][:10]
+                        == data['list'][record]['dt_txt'][:10]):
+
+                    if (sunset_time.hour
+                            > int(data['list'][i]['dt_txt'][11:13])
+                            > sunrise_time.hour):
+
                         temp_max_min_day.append(
-                            data['list'][i]['main']['temp_min'])
+                            data['list'][i]['main']['temp_min']
+                            )
                         temp_max_min_day.append(
-                            data['list'][i]['main']['temp_max'])
+                            data['list'][i]['main']['temp_max']
+                            )
                     else:
                         temp_max_min_night.append(
                             data['list'][i]['main']['temp_min'])
                         temp_max_min_night.append(
                             data['list'][i]['main']['temp_max'])
+
             if len(temp_max_min_day) > 0:
-                text_weather += (f"🌡🌞 *{'{0:+3.0f}'.format(max(temp_max_min_day))}* "
-                                 f"... *{'{0:+3.0f}'.format(min(temp_max_min_day))}*°C\n")
+                text_weather += (
+                    f"🌡🌞 *{'{0:+3.0f}'.format(max(temp_max_min_day))}* "
+                    f"... *{'{0:+3.0f}'.format(min(temp_max_min_day))}*°C\n")
+
             if len(temp_max_min_night) > 0:
-                text_weather += (f"      🌙 *{'{0:+3.0f}'.format(max(temp_max_min_night))}* "
-                                 f"... *{'{0:+3.0f}'.format(min(temp_max_min_night))}*°C\n")
-            text_weather += f"давление *{int(data['list'][record]['main']['pressure']*0.750063755419211)}*мм рт.ст\n"
+                text_weather += (
+                    f"      🌙 *{'{0:+3.0f}'.format(max(temp_max_min_night))}* "
+                    f"... *{'{0:+3.0f}'.format(min(temp_max_min_night))}*°C\n")
+            coeff_celsia = 0.750063755419211
+            pressure_c = int(
+                data['list'][record]['main']['pressure']*coeff_celsia)
+            text_weather += (f"давление *{pressure_c}*мм рт.ст\n")
+
         text_weather += "-\n".rjust(30, '-')
         text_weather += f"      ВОСХОД в *{sunrise_time.strftime('%H:%M')}*\n"
         text_weather += f"      ЗАКАТ     в *{sunset_time.strftime('%H:%M')}*"
@@ -493,35 +534,17 @@ def weather_forecast(message):
         pass
 
 
-def similarity(s1, s2):
+def similarity(s1: str, s2: str) -> float:
+    """Сравнение записей в модуле difflib
+       [https://docs.python.org/3/library/difflib.html]."""
     normalized1 = s1.lower()
     normalized2 = s2.lower()
     matcher = difflib.SequenceMatcher(None, normalized1, normalized2)
     return matcher.ratio()
 
 
-def add_todo(date, type_note, task, user_id, t_time='07:15'):
-
-    cur.execute(""" SELECT id, date, time, task
-                    FROM tasks
-                    WHERE date=?
-                ;""", (date,))
-    tasks = cur.fetchall()
-
-    if len(tasks) > 0:
-        for item in tasks:
-            simil = similarity(item[3], task)
-            if simil > 0.618:
-                return True
-
-    id = round(time.time() * 100000)
-    new_tasks = (id, date, t_time, type_note, task, user_id)
-
-    cur.execute("""INSERT INTO tasks VALUES(?, ?, ?, ?, ?, ?);""", new_tasks)
-    conn.commit()
-
-
 def add_notes(message):
+    """Добавление записи в БД."""
     try:
         command_text = re.sub(r'/add ', '', message.text)
         pars_mess = ParsingMessege(command_text)
@@ -539,7 +562,7 @@ def add_notes(message):
             bot.send_message(message.chat.id,
                              text_send, parse_mode='Markdown')
 
-        elif add_todo(date, type_note, task, user_id, t_time):
+        elif pars_mess.add_todo(user_id):
             text_send = (
                 'Есть более чем на 61% схожая запись на дату'
                 f' *{date}*,\nсообщение *<{task}>* не добавлено'
@@ -550,7 +573,7 @@ def add_notes(message):
             if type_note == 'todo':
                 text_send = (
                     f'{message.from_user.first_name}, напоминание, *<{task}>* '
-                    'добавлена на дату <{date}> на время <{t_time}>'
+                    f'добавлена на дату <{date}> на время <{t_time}>'
                             )
                 bot.send_message(message.chat.id,
                                  text_send, parse_mode='Markdown')
@@ -578,6 +601,7 @@ def add_notes(message):
 
 
 def del_note(message):
+    """Удаление записи из БД."""
     try:
         command_text = re.sub(r'/del ', '', message.text)
         pars_mess = ParsingMessege(command_text)
@@ -630,6 +654,7 @@ def del_note(message):
 
 
 def show_note_on_date(message):
+    """Вывод записей из БД на конкретую дату."""
     command_text = re.sub(r'/show ', '', message.text)
     pars_mess = ParsingMessege(command_text)
     date = pars_mess.date
@@ -691,13 +716,15 @@ def show_note_on_date(message):
     bot.delete_message(message.chat.id, int(message_id))
 
 
-def sort_date(x):
+def sort_date(x: int) -> int:
+    """Ключ фильтра для сортировки."""
     d = x.split(" - ")[0]
     sort_val = f'{d.split(".")[2]}{d.split(".")[1]}{d.split(".")[1]}'
     return int(sort_val)
 
 
 def show_all_notes(message):
+    """Вывод всех записей из БД."""
     note = []
     cur.execute(
         """ SELECT date, task
@@ -720,6 +747,7 @@ def show_all_notes(message):
 
 
 def show_all_birthdays(message):
+    """Показать все дни рождения."""
     note = []
     cur.execute(""" SELECT date, task
                     FROM tasks
@@ -740,7 +768,8 @@ def show_all_birthdays(message):
     bot.send_message(message.chat.id, note_sort, parse_mode='Markdown')
 
 
-def joke_parsing(id_user, all=False):
+def joke_parsing(id_user: int, all: bool = False) -> list[str, list[str]]:
+    """Парсинг сайта с анекдотами."""
     if id_user in ID_CHILDREN:
         resp = requests.get('https://anekdotbar.ru/dlya-detey/')
     else:
@@ -761,6 +790,7 @@ def joke_parsing(id_user, all=False):
 
 
 def show_joke(message):
+    """Показать анекдот."""
     try:
         id_user = message.chat.id
         bot.send_message(message.chat.id, joke_parsing(id_user))
@@ -770,6 +800,7 @@ def show_joke(message):
 
 
 def show_joke_many(message):
+    """Показать все распарсенные анекдоты."""
     try:
         id_user = message.chat.id
         bot.send_message(message.chat.id, joke_parsing(id_user, all=True))
@@ -778,7 +809,8 @@ def show_joke_many(message):
         pass
 
 
-def random_response_to_word(word):
+def random_response_to_word(word: str) -> str:
+    """Чтение из БД и возврат случайного задания по слову random."""
     cur.execute(""" SELECT answer
                     FROM reactions
                     WHERE word=?
@@ -787,14 +819,19 @@ def random_response_to_word(word):
     return choice(respons)[0]
 
 
-def add_random_task(message, *args):
+def add_random_task(message):
+    """Добавление случайного задания на следующий день.
+       Используется в случает провинности )."""
     choice_task = random_response_to_word('random')
     task = (
         f'задание "{choice_task}" '
         f'возложено на {message.from_user.first_name}'
     )
     date = datetime.strftime(dt.today() + timedelta(days=1), '%d.%m.%Y')
-    add_todo(date, 'todo', task, message.from_user.id)
+
+    judgement = ParsingMessege(f'{date} {task}')
+    judgement.add_todo(message.from_user.id)
+
     bot.send_message(
         message.chat.id,
         (f'Задача <{choice_task}> для '
@@ -802,27 +839,43 @@ def add_random_task(message, *args):
     )
 
 
-# checking control word in user answer
-def check_words_list(list_with_word, answer):
+def check_words_list(list_with_word: list[str], answer: str) -> bool:
+    """Поиск слова в списке."""
     for word in list_with_word:
         if word in answer:
             return True
+    else:
+        return False
 
 
 @bot.message_handler(func=lambda message: True, content_types=['text'])
 def text_ansvers(message):
-    if check_words_list(['прив', 'здрав', 'добро'], message.text.lower()):
+    """Ищит некоторые слова в сообщениях пользователей."""
+    if check_words_list(
+            ['прив', 'здрав', 'добро'], message.text.lower()):
+
         bot.reply_to(message, random_response_to_word('привет'))
-    elif check_words_list(['делать'], message.text.lower()):
+
+    elif check_words_list(
+            ['делать'], message.text.lower()):
+
         bot.reply_to(message, random_response_to_word('делать'))
-    elif check_words_list(['делаешь', 'занимаешься'], message.text.lower()):
+
+    elif check_words_list(
+            ['делаешь', 'занимаешься'], message.text.lower()):
+
         bot.reply_to(message, random_response_to_word('делаешь'))
-    elif check_words_list(['дела', 'как ты', 'настроен'], message.text.lower()):
+
+    elif check_words_list(
+            ['дела', 'как ты', 'настроен'], message.text.lower()):
+
         bot.reply_to(message, random_response_to_word('дела'))
+
     return False
 
 
 def check_note_and_send_message():
+    """Основной модуль оповещающий о собыниях в чатах."""
     # проверка на пропуск минут в случаях отказов оборудования
     cur_time_tup = time.mktime(datetime.now().replace(
         second=0, microsecond=0).timetuple())
