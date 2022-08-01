@@ -185,11 +185,11 @@ def help(message):
                  get_note_on_date, get_all_note, get_joke, get_many_joke)
     keyboard.add(where_to_go)
 
-
-    menu_text = ("* 💡  ГЛАВНОЕ МЕНЮ  💡 *".center(28, "~")
-                 + "\n"
-                 + "для пользователя "
-                 + f"{message.from_user.first_name}".center(28, "~"))
+    menu_text = (
+        "* 💡  ГЛАВНОЕ МЕНЮ  💡 *".center(28, "~")
+        + "\n"
+        + f"для пользователя {message.from_user.first_name}".center(28, "~")
+        )
 
     menu_id = bot.send_message(message.chat.id,
                                menu_text,
@@ -220,8 +220,10 @@ def location(message):
         text="🛰 моя позиция для группы", callback_data='my_position')
     keyboard.add(weather_per_day, get_weather_for_4_day, get_my_position)
 
+    menu_text = "* 💡  МЕНЮ ПОГОДЫ  💡 *".center(28, "~")
+
     menu_id = bot.send_message(message.chat.id,
-                               "* 💡 🔽  МЕНЮ ПОГОДЫ  🔽 💡 *",
+                               menu_text,
                                reply_markup=keyboard,
                                parse_mode='Markdown').message_id
 
@@ -396,7 +398,8 @@ def status_weather(description_weather: str) -> str:
         'облачно с прояснениями': ' ⛅️ облачно с прояснениями',
         'пасмурно': ' ☁️ пасмурно',
         'небольшой дождь': ' 🌦 небольшой дождь',
-        'сильный дождь': ' 🌧 сильный дождь',
+        'сильный дождь': ' ⛈ сильный дождь',
+        'дождь': ' 🌧 дождь',
     }
     return dict_weather[description_weather]
 
@@ -445,7 +448,7 @@ def current_weather(message):
         weather = [
             f" *{status_weather(data['weather'][0]['description'])}*",
             f" 💧 влажность: *{data['main']['humidity']}*%",
-            f" ⚗️ давление:   *{pressure}*мм рт.ст",
+            f" 🌀 давление:   *{pressure}*мм рт.ст",
             f" 💨 ветер: *{wind_speed}м/сек ⤗ {wind_directions[direction]}*",
             f" 🌡 текущая: *{'{0:+3.0f}'.format(data['main']['temp'])}*°C",
             f" 🥶 мин:  *{'{0:+3.0f}'.format(data['main']['temp_min'])}*°C",
