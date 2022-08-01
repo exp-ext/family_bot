@@ -1,0 +1,9 @@
+beautifulsoup4
+holidays
+pytz
+pyTelegramBotAPI
+schedule
+
+
+#python -m pip install -r requirements.txt      for Unix/macOS
+#py -m pip install -r requirements.txt          for Windows
