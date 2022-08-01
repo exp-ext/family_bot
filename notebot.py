@@ -185,8 +185,11 @@ def help(message):
                  get_note_on_date, get_all_note, get_joke, get_many_joke)
     keyboard.add(where_to_go)
 
-    menu_text = ('* 💡 🔽  ГЛАВНОЕ МЕНЮ  🔽 💡 \n*'
-                 f'    для пользователя {message.from_user.first_name}')
+
+    menu_text = ("* 💡  ГЛАВНОЕ МЕНЮ  💡 *".center(28, "~")
+                 + "\n"
+                 + "для пользователя "
+                 + f"{message.from_user.first_name}".center(28, "~"))
 
     menu_id = bot.send_message(message.chat.id,
                                menu_text,
