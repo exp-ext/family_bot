@@ -55,39 +55,39 @@
 
 Через командную строку устанавливаем python:
 
-$ opkg install python3
+    $ opkg install python3
 
 после ставим менеджер пакетов pip командой:
 
-$ opkg install python3-pip
+    $ opkg install python3-pip
 
 устанавливаем curl:
 
-$ opkg install curl
+    $ opkg install curl
 
 Создаём необходимую папку:
 
-$ mkdir /opt/usr/bot
+    $ mkdir /opt/usr/bot
 
 переходим в нашу директорию:
 
-$ cd /opt/usr/bot
+    $ cd /opt/usr/bot
 
 и заливаем в неё бота с остальными необходимые файлами прямо с GIT HAB:
 
-$ curl https://github.com/exp-ext/family_bot/blob/main/ --output notebot.py
+    $ curl https://github.com/exp-ext/family_bot/blob/main/ --output notebot.py
 
-$ curl https://github.com/exp-ext/family_bot/blob/main/ --output config.py
+    $ curl https://github.com/exp-ext/family_bot/blob/main/ --output config.py
 
-$ curl https://github.com/exp-ext/family_bot/blob/main/ --output data_for_notebot.db
+    $ curl https://github.com/exp-ext/family_bot/blob/main/ --output data_for_notebot.db
 
-$ curl https://github.com/exp-ext/family_bot/blob/main/ --output requirements.txt
+    $ curl https://github.com/exp-ext/family_bot/blob/main/ --output requirements.txt
 
-$ curl https://github.com/exp-ext/family_bot/blob/main/ --output botstart.sh
+    $ curl https://github.com/exp-ext/family_bot/blob/main/ --output botstart.sh
 
 в той же папке открываем при помощи vim конфиг:
 
-$ vi config.py
+    $ vi config.py
 
 и вписываем в него все ID полученные при регистрации ранее.
 
@@ -95,40 +95,40 @@ $ vi config.py
 
 создаём виртуальное пространство и активируем его:
 
-python3 -m venv venv
+    $ python3 -m venv venv
 
-source venv/bin/activate
+    $ source venv/bin/activate
 
 Устанавливаем необходимые библиотеки:
 
-python3 -m pip install -r requirements.txt
+    $ python3 -m pip install -r requirements.txt
 
 Переходим в директорию с инициализацией Entware:
 
-$ cd /opt/etc/init.d
+    $ cd /opt/etc/init.d
 
 и заливаем в неё скрипт запуска при загрузке:
 
-$ curl https://github.com/exp-ext/family_bot/blob/main/ --output S77botstart.sh
+    $ curl https://github.com/exp-ext/family_bot/blob/main/ --output S77botstart.sh
 
 делаем файлы исполняемыми:
 
-$ chmod +x /opt/usr/bot/notebot.py
+    $ chmod +x /opt/usr/bot/notebot.py
 
-$ chmod +x /opt/usr/bot/config.py
+    $ chmod +x /opt/usr/bot/config.py
 
-$ chmod +x /opt/usr/bot/botstart.sh
+    $ chmod +x /opt/usr/bot/botstart.sh
 
-$ chmod +x /opt/etc/init.d/S77botstart.sh
+    $ chmod +x /opt/etc/init.d/S77botstart.sh
 
 настраиваем crontab:
 
-$ vi /opt/etc/crontab
+    $ vi /opt/etc/crontab
 
-    и в конец всех записей вставляем:
+и в конец всех записей вставляем:
     
     */360 * * * * root /opt/usr/bot/botstart.sh
 
 и наконец запуск бота 🚀:
 
-$ /opt/usr/bot/botstart.sh
+    $ /opt/usr/bot/botstart.sh
