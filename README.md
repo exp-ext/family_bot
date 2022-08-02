@@ -1,7 +1,7 @@
 # Телеграмм бот для семейного чата.
 ***
+<img src="https://github.com/exp-ext/family_bot/blob/main/bot-face.png" width="100">
 
-![Alt Text](https://github.com/exp-ext/family_bot/blob/main/bot-face.png =200) 
 
 ***
 
