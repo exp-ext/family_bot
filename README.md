@@ -93,25 +93,15 @@
 
 Чтоб сохранить и выйти нужно нажать Esc и ввести команду :wq (она появится внизу)
 
-создаём виртуальное пространство и активируем его:
-
-    $ python3 -m venv venv
-
-    $ source venv/bin/activate
-
 Устанавливаем необходимые библиотеки:
 
     $ python3 -m pip install -r requirements.txt
 
-Переходим в директорию с инициализацией Entware:
-
-    $ cd /opt/etc/init.d
-
-и заливаем в неё скрипт запуска при загрузке:
+Заливаем скрипт запуска бота при перезагрузке системы в папку инициализации:
     
-    $ curl -k -L https://raw.githubusercontent.com/exp-ext/family_bot/master/botstart.sh -o S77botstart.sh && chmod 755 S77botstart.sh
+    $ curl -k -L https://raw.githubusercontent.com/exp-ext/family_bot/master/botstart.sh -o /opt/etc/init.d/S77botstart.sh && chmod 755 /opt/etc/init.d/S77botstart.sh
 
-настраиваем crontab:
+Настраиваем crontab:
 
     $ vi /opt/etc/crontab
 
