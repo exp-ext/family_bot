@@ -75,6 +75,8 @@
 
 и заливаем в неё файлы с githab, сразу делая их исполняемыми:
 
+    # копируйте и вводите в терминал все 5 строк поочерёдно
+    
     $ curl -k -L https://raw.githubusercontent.com/exp-ext/family_bot/master/notebot.py -o notebot.py && chmod 755 notebot.py
     
     $ curl -k -L https://raw.githubusercontent.com/exp-ext/family_bot/master/config.py -o config.py && chmod 755 config.py
