@@ -2,13 +2,13 @@
 TOKEN = ''
 
 #ID telegram семейного группового чата
-CHAT_ID = ""
+CHAT_ID = ''
 
 #ID на сайте предоставления прогноза погоды https://home.openweathermap.org/api_keys
-OW_API_ID = ""
+OW_API_ID = ''
 
 #ID на https://yandex.ru/dev/maps/geocoder/
-YANDEX_GEO_API = ""
+YANDEX_GEO_API = ''
 
 #ID детей для предоставления только детских анекдотов
 ID_CHILDREN = ['']
