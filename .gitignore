@@ -3,3 +3,12 @@ config.py
 
 # confidecial
 data_for_notebot.db
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
