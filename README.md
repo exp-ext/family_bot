@@ -1,4 +1,4 @@
-# Телеграмм бот для семейного чата 👨‍👩‍👧‍👦
+# Телеграм бот для семейного чата 👨‍👩‍👧‍👦
 ***
 <p align="center">
 <img src="https://github.com/exp-ext/family_bot/blob/main/bot-face.png" width="200">
@@ -73,17 +73,17 @@
 
     $ cd /opt/usr/bot
 
-и заливаем в неё бота с остальными необходимые файлами прямо с GIT HAB:
+и заливаем в неё файлы с githab, сразу делая их исполняемыми:
 
-    $ curl https://github.com/exp-ext/family_bot/blob/main/ --output notebot.py
+    $ curl -k -L https://raw.githubusercontent.com/exp-ext/family_bot/master/notebot.py -o notebot.py && chmod 755 notebot.py
+    
+    $ curl -k -L https://raw.githubusercontent.com/exp-ext/family_bot/master/config.py -o config.py && chmod 755 config.py
+    
+    $ curl -k -L https://raw.githubusercontent.com/exp-ext/family_bot/master/data_for_notebot.db -o data_for_notebot.db
+    
+    $ curl -k -L https://raw.githubusercontent.com/exp-ext/family_bot/master/requirements.txt -o requirements.txt
 
-    $ curl https://github.com/exp-ext/family_bot/blob/main/ --output config.py
-
-    $ curl https://github.com/exp-ext/family_bot/blob/main/ --output data_for_notebot.db
-
-    $ curl https://github.com/exp-ext/family_bot/blob/main/ --output requirements.txt
-
-    $ curl https://github.com/exp-ext/family_bot/blob/main/ --output botstart.sh
+    $ curl -k -L https://raw.githubusercontent.com/exp-ext/family_bot/master/botstart.sh -o botstart.sh && chmod 755 botstart.sh
 
 в той же папке открываем при помощи vim конфиг:
 
@@ -108,18 +108,8 @@
     $ cd /opt/etc/init.d
 
 и заливаем в неё скрипт запуска при загрузке:
-
-    $ curl https://github.com/exp-ext/family_bot/blob/main/ --output S77botstart.sh
-
-делаем файлы исполняемыми:
-
-    $ chmod +x /opt/usr/bot/notebot.py
-
-    $ chmod +x /opt/usr/bot/config.py
-
-    $ chmod +x /opt/usr/bot/botstart.sh
-
-    $ chmod +x /opt/etc/init.d/S77botstart.sh
+    
+    $ curl -k -L https://raw.githubusercontent.com/exp-ext/family_bot/master/botstart.sh -o S77botstart.sh && chmod 755 S77botstart.sh
 
 настраиваем crontab:
 
