@@ -10,6 +10,7 @@ from datetime import date as dt
 from datetime import datetime, timedelta
 from multiprocessing.context import Process
 from random import choice
+from typing import Tuple
 
 import holidays
 import pytz
@@ -65,8 +66,7 @@ class ParsingMessege:
     """Разбираем сообщение на комплектующие."""
     __slots__ = ('massege', 'date', 'time', 'type_note')
 
-    def __init__(self,
-                 message: str) -> None:
+    def __init__(self, message: str) -> None:
         type_note = 'todo'
         if re.search(r'\d+[./-]\d+[./-]\d+', message):
             date_found = re.search(r'\d+[./-]\d+[./-]\d+', message).group()
@@ -134,7 +134,8 @@ class ParsingMessege:
 
         cur.execute(
             """INSERT INTO tasks VALUES(?, ?, ?, ?, ?, ?);""",
-            new_tasks)
+            new_tasks
+            )
         conn.commit()
         return True
 
@@ -164,22 +165,30 @@ def help(message):
     keyboard = types.InlineKeyboardMarkup(row_width=2)
 
     add_note = types.InlineKeyboardButton(
-        text="💬 добавить запись", callback_data='add')
+        text="💬 добавить запись", callback_data='add'
+        )
     del_note = types.InlineKeyboardButton(
-        text="❌ удалить запись", callback_data='del')
+        text="❌ удалить запись", callback_data='del'
+        )
     get_note_random = types.InlineKeyboardButton(
-        text="🙏 отработать провинность", callback_data='random')
+        text="🙏 отработать провинность", callback_data='random'
+        )
     get_all_birthdays = types.InlineKeyboardButton(
-        "🚼 календарь рождений", callback_data='birthdays')
+        "🚼 календарь рождений", callback_data='birthdays'
+        )
     get_note_on_date = types.InlineKeyboardButton(
-        "📅 планы на дату", callback_data='show')
+        "📅 планы на дату", callback_data='show'
+        )
     get_all_note = types.InlineKeyboardButton(
-        "📝 все планы", callback_data='show_all')
+        "📝 все планы", callback_data='show_all'
+        )
     get_joke = types.InlineKeyboardButton("🎭 анекдот", callback_data='joke')
     get_many_joke = types.InlineKeyboardButton(
-        "🎪 много анекдотов", callback_data='joke_many')
+        "🎪 много анекдотов", callback_data='joke_many'
+        )
     where_to_go = types.InlineKeyboardButton(
-        "🏄 список мероприятий в СПб", callback_data='where_to_go')
+        "🏄 список мероприятий в СПб", callback_data='where_to_go'
+        )
 
     keyboard.add(add_note, del_note, get_note_random, get_all_birthdays,
                  get_note_on_date, get_all_note, get_joke, get_many_joke)
@@ -202,7 +211,8 @@ def help(message):
     bot.delete_message(message.chat.id, message_id)
 
     add_new_user = (message.from_user.id,
-                    message.from_user.first_name,  message.from_user.last_name)
+                    message.from_user.first_name,
+                    message.from_user.last_name)
 
     cur.execute("""REPLACE INTO users VALUES(?, ?, ?);""", add_new_user)
     conn.commit()
@@ -213,11 +223,14 @@ def location(message):
     """Кнопки меню погоды в только личном чате с ботом"""
     keyboard = types.InlineKeyboardMarkup(row_width=1)
     weather_per_day = types.InlineKeyboardButton(
-        text="🌈 погода сейчас", callback_data='weather_per_day')
+        text="🌈 погода сейчас", callback_data='weather_per_day'
+        )
     get_weather_for_4_day = types.InlineKeyboardButton(
-        text="☔️ прогноз погоды на 4 дня", callback_data='weather')
+        text="☔️ прогноз погоды на 4 дня", callback_data='weather'
+        )
     get_my_position = types.InlineKeyboardButton(
-        text="🛰 моя позиция для группы", callback_data='my_position')
+        text="🛰 моя позиция для группы", callback_data='my_position'
+        )
     keyboard.add(weather_per_day, get_weather_for_4_day, get_my_position)
 
     menu_text = "* 💡  МЕНЮ ПОГОДЫ  💡 *".center(28, "~")
@@ -355,7 +368,8 @@ def help_locatoin(message):
                                          resize_keyboard=True)
     button_geo = types.KeyboardButton(
         text="☀️ получить погоду и 👣 моё местоположение",
-        request_location=True)
+        request_location=True
+        )
 
     keyboard.add(button_geo)
     bot.send_message(message.chat.id,
@@ -372,11 +386,12 @@ def get_address_from_coords(coords: str) -> str:
         "format": "json",
         "lang": "ru_RU",
         "kind": "house",
-        "geocode": coords
-    }
+        "geocode": coords,
+        }
     try:
         r = requests.get(
-            url="https://geocode-maps.yandex.ru/1.x/", params=params)
+            url="https://geocode-maps.yandex.ru/1.x/", params=params
+            )
 
         json_data = r.json()
 
@@ -391,20 +406,24 @@ def get_address_from_coords(coords: str) -> str:
 
 def status_weather(description_weather: str) -> str:
     """Добавление картинки в описание."""
-    dict_weather = {
-        'ясно': ' ☀️ ясно',
-        'переменная облачность': ' 🌤 переменная облачность',
-        'небольшая облачность': ' 🌤 переменная облачность',
-        'облачно с прояснениями': ' ⛅️ облачно с прояснениями',
-        'пасмурно': ' ☁️ пасмурно',
-        'небольшой дождь': ' 🌦 небольшой дождь',
-        'сильный дождь': ' ⛈ сильный дождь',
-        'дождь': ' 🌧 дождь',
-    }
-    return dict_weather[description_weather]
+    try:
+        dict_weather = {
+            'ясно': ' ☀️ ясно',
+            'переменная облачность': ' 🌤 переменная облачность',
+            'небольшая облачность': ' 🌤 переменная облачность',
+            'облачно с прояснениями': ' ⛅️ облачно с прояснениями',
+            'пасмурно': ' ☁️ пасмурно',
+            'небольшой дождь': ' 🌦 небольшой дождь',
+            'сильный дождь': ' ⛈ сильный дождь',
+            'дождь': ' 🌧 дождь',
+            }
+        return dict_weather[description_weather]
+
+    except Exception:
+        return description_weather
 
 
-def get_geo_coordinates(user_id: int) -> tuple:
+def get_geo_coordinates(user_id: int) -> Tuple[int, str, str]:
     """Считывание последних геокоординат User из БД."""
     cur.execute(""" SELECT MAX(iddate), longitude, latitude
                     FROM geolocation
@@ -431,17 +450,23 @@ def current_weather(message):
     """Вывод погоды по текущим геокоординатам."""
     coordinates = get_geo_coordinates(message.from_user.id)
     try:
-        res = requests.get("http://api.openweathermap.org/data/2.5/weather",
-                           params={'lat': coordinates[2],
-                                   'lon': coordinates[1],
-                                   'units': 'metric',
-                                   'lang': 'ru',
-                                   'APPID': OW_API_ID})
+        res = requests.get(
+            "http://api.openweathermap.org/data/2.5/weather",
+            params={
+                'lat': coordinates[2],
+                'lon': coordinates[1],
+                'units': 'metric',
+                'lang': 'ru',
+                'APPID': OW_API_ID
+                }
+            )
         data = res.json()
 
-        wind_directions = ("Сев", "Сев-Вост", "Вост", "Юго-Вост",
-                           "Южный", "Юго-Зап", "Зап", "Сев-Зап")
-        direction = int(int((data['wind']['speed']) + 22.5) // 45 % 8)
+        wind_directions = (
+            "Сев", "Сев-Вост", "Вост", "Юго-Вост",
+            "Южный", "Юго-Зап", "Зап", "Сев-Зап"
+            )
+        direction = (int((data['wind']['speed']) + 22.5) // 45 % 8)
         wind_speed = int(data['wind']['speed'])
         pressure = round(int(data['main']['pressure']*0.750063755419211))
 
@@ -469,13 +494,18 @@ def current_weather(message):
 def weather_forecast(message):
     """Вывод прогноза погоды на 4 дня по последним User геокоординатам."""
     coordinates = get_geo_coordinates(message.from_user.id)
+
     try:
-        res = requests.get("http://api.openweathermap.org/data/2.5/forecast?",
-                           params={'lat': coordinates[2],
-                                   'lon': coordinates[1],
-                                   'units': 'metric',
-                                   'lang': 'ru',
-                                   'APPID': OW_API_ID})
+        res = requests.get(
+            "http://api.openweathermap.org/data/2.5/forecast?",
+            params={
+                'lat': coordinates[2],
+                'lon': coordinates[1],
+                'units': 'metric',
+                'lang': 'ru',
+                'APPID': OW_API_ID
+                }
+            )
         data = res.json()
 
         sunrise_time = datetime.utcfromtimestamp(
@@ -535,6 +565,7 @@ def weather_forecast(message):
         text_weather += f"      ВОСХОД в *{sunrise_time.strftime('%H:%M')}*\n"
         text_weather += f"      ЗАКАТ     в *{sunset_time.strftime('%H:%M')}*"
         bot.send_message(message.chat.id, text_weather, parse_mode='Markdown')
+
     except Exception as exc:
         bot.send_message(message.chat.id, f'ошибочка вышла - {exc}')
         pass
@@ -774,45 +805,41 @@ def show_all_birthdays(message):
     bot.send_message(message.chat.id, note_sort, parse_mode='Markdown')
 
 
-def joke_parsing(id_user: int, all: bool = False) -> list[str, list[str]]:
+def joke_parsing(id_user: int, all: bool = False) -> str | list[str]:
     """Парсинг сайта с анекдотами."""
-    if id_user in ID_CHILDREN:
-        resp = requests.get('https://anekdotbar.ru/dlya-detey/')
-    else:
-        resp = requests.get('https://anekdotbar.ru/')
-    bs_data = BeautifulSoup(resp.text, "html.parser")
-    an_text = bs_data.select('.tecst')
-    response_list = []
-    for x in an_text:
-        joke = x.getText().strip().split('\n')[0]
-        response_list.append(joke)
-        response_all = ''
-    if not all:
-        return choice(response_list)
-    else:
-        for x in response_list:
-            response_all += f'~ {x} \n\n'
-        return response_all
+    try:
+        if id_user in ID_CHILDREN:
+            resp = requests.get('https://anekdotbar.ru/dlya-detey/')
+        else:
+            resp = requests.get('https://anekdotbar.ru/')
+        bs_data = BeautifulSoup(resp.text, "html.parser")
+        an_text = bs_data.select('.tecst')
+        response_list = []
+        for x in an_text:
+            joke = x.getText().strip().split('\n')[0]
+            response_list.append(joke)
+            response_all = ''
+        if not all:
+            return choice(response_list)
+        else:
+            for x in response_list:
+                response_all += f'~ {x} \n\n'
+            return response_all
+
+    except Exception as exc:
+        return f'ошибочка вышла - {exc}'
 
 
 def show_joke(message):
     """Показать анекдот."""
-    try:
-        id_user = message.chat.id
-        bot.send_message(message.chat.id, joke_parsing(id_user))
-    except Exception as exc:
-        bot.send_message(message.chat.id, f'ошибочка вышла - {exc}')
-        pass
+    id_user = message.chat.id
+    bot.send_message(message.chat.id, joke_parsing(id_user))
 
 
 def show_joke_many(message):
     """Показать все распарсенные анекдоты."""
-    try:
-        id_user = message.chat.id
-        bot.send_message(message.chat.id, joke_parsing(id_user, all=True))
-    except Exception as exc:
-        bot.send_message(message.chat.id, f'ошибочка вышла - {exc}')
-        pass
+    id_user = message.chat.id
+    bot.send_message(message.chat.id, joke_parsing(id_user, all=True))
 
 
 def random_response_to_word(word: str) -> str:
