@@ -113,7 +113,7 @@ class ScheduleMessage():
         p1.start()
 
 
-def getter_data_for_parsing_messege(message)-> list[str]:
+def getter_data_for_parsing_messege(message) -> list[str]:
     """Cоздаем список для класса."""
     type_note = 'todo'
 
