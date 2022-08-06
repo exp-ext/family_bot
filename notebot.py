@@ -64,55 +64,17 @@ conn.commit()
 
 class ParsingMessege:
     """Разбираем сообщение на комплектующие."""
-    __slots__ = ('massege', 'date', 'time', 'type_note')
+    __slots__ = ('date', 'message', 'time', 'type_note')
 
-    def __init__(self, message: str) -> None:
-        type_note = 'todo'
-        if re.search(r'\d+[./-]\d+[./-]\d+', message):
-            date_found = re.search(r'\d+[./-]\d+[./-]\d+', message).group()
-            date_found = re.sub(r'[/-]', '.', date_found)
-
-            if len(date_found.split(".")[2]) == 2:
-                year = f'20{date_found.split(".")[2]}'
-            else:
-                year = date_found.split(".")[2]
-
-            date = datetime(int(year), int(date_found.split(".")[
-                            1]), int(date_found.split(".")[0]))
-            date_str = datetime.strftime(date, '%d.%m.%Y')
-
-        elif re.search(r'\d+[./-]\d+', message):
-            date_found = re.search(r'\d+[./-]\d+', message).group()
-            date = datetime(2000, int(date_found.split(
-                ".")[1]), int(date_found.split(".")[0]))
-            date_str = datetime.strftime(date, '%d.%m')
-            type_note = 'birthday'
-
-        elif re.search(r'[Сс]егодня', message):
-            date_found = re.search(r'[Сс]егодня', message).group()
-            date_str = datetime.strftime(dt.today(), '%d.%m.%Y')
-
-        elif re.search(r'[Зз]автра', message):
-            date_found = re.search(r'[Зз]автра', message).group()
-            date_str = datetime.strftime(
-                dt.today() + timedelta(days=1), '%d.%m.%Y')
-        else:
-            date_found = ''
-            date_str = None
-
-        if re.search(r'\d+[:]\d{2}', message):
-            time_found = re.search(r'\d+[:]\d{2}', message).group()
-            time = datetime(2000, 1, 1, int(time_found.split(":")[
-                            0]), int(time_found.split(":")[1]))
-            time_str = datetime.strftime(time, '%H:%M')
-        else:
-            time_str = '07:15'
-
-        message_without_date = re.sub(date_found, '', message)
-
-        self.massege = re.sub(r'\s+', ' ', message_without_date).strip()
-        self.date = date_str
-        self.time = time_str
+    def __init__(self,
+                 date: str,
+                 message: str,
+                 time: str,
+                 type_note: str,
+                 ) -> None:
+        self.date = date
+        self.message = message
+        self.time = time
         self.type_note = type_note
 
     def add_todo(self, user_id: int) -> bool:
@@ -125,12 +87,12 @@ class ParsingMessege:
 
         if len(tasks) > 0:
             for item in tasks:
-                simil = similarity(item[3], self.massege)
+                simil = similarity(item[3], self.message)
                 if simil > 0.618:
                     return False
         id = round(time.time() * 100000)
         new_tasks = (id, self.date, self.time,
-                     self.type_note, self.massege, user_id)
+                     self.type_note, self.message, user_id)
 
         cur.execute(
             """INSERT INTO tasks VALUES(?, ?, ?, ?, ?, ?);""",
@@ -149,6 +111,60 @@ class ScheduleMessage():
     def start_process():
         p1 = Process(target=ScheduleMessage.try_send_schedule, args=())
         p1.start()
+
+
+def getter_data_for_parsing_messege(message):
+    type_note = 'todo'
+
+    if re.search(r'\d+[./-]\d+[./-]\d+', message):
+        date_found = re.search(r'\d+[./-]\d+[./-]\d+', message).group()
+        date_found = re.sub(r'[/-]', '.', date_found)
+
+        if len(date_found.split(".")[2]) == 2:
+            year = f'20{date_found.split(".")[2]}'
+        else:
+            year = date_found.split(".")[2]
+
+        date = datetime(int(year), int(date_found.split(".")[
+                        1]), int(date_found.split(".")[0]))
+        date_str = datetime.strftime(date, '%d.%m.%Y')
+
+    elif re.search(r'\d+[./-]\d+', message):
+        date_found = re.search(r'\d+[./-]\d+', message).group()
+        date = datetime(2000, int(date_found.split(
+            ".")[1]), int(date_found.split(".")[0]))
+        date_str = datetime.strftime(date, '%d.%m')
+        type_note = 'birthday'
+
+    elif re.search(r'[Сс]егодня|[Зз]автра', message):
+        date_found = re.search(r'[Сс]егодня|[Зз]автра', message).group()
+        today = datetime.strftime(dt.today(), '%d.%m.%Y')
+        tomorrow = datetime.strftime(
+            dt.today() + timedelta(days=1), '%d.%m.%Y'
+            )
+        near_future = {
+            'сегодня': today,
+            'завтра': tomorrow,
+            }
+        date_str = near_future[date_found.lower()]
+    else:
+        date_found = ''
+        date_str = None
+
+    if re.search(r'\d+[:]\d{2}', message):
+        time_found = re.search(r'\d+[:]\d{2}', message).group()
+        time = datetime(2000, 1, 1, int(time_found.split(":")[
+                        0]), int(time_found.split(":")[1]))
+        time_str = datetime.strftime(time, '%H:%M')
+    else:
+        time_str = '07:15'
+
+    message_without_date = re.sub(date_found, '', message)
+    message_without_date = re.sub(
+        r'\s+', ' ', message_without_date
+        ).strip()
+
+    return [date_str, message_without_date, time_str, type_note]
 
 
 def replace_messege_id(user_id: int, messege_id: int, chat_id: int) -> None:
@@ -583,17 +599,17 @@ def similarity(s1: str, s2: str) -> float:
 def add_notes(message):
     """Добавление записи в БД."""
     try:
-        command_text = re.sub(r'/add ', '', message.text)
-        pars_mess = ParsingMessege(command_text)
+        data = getter_data_for_parsing_messege(message.text)
+        pars_mess = ParsingMessege(*data)
         date = pars_mess.date
         t_time = pars_mess.time
         type_note = pars_mess.type_note
-        task = pars_mess.massege
+        task = pars_mess.message
         user_id = message.from_user.id
 
         if date is None:
             text_send = (
-                f'Дата в запросе *<{command_text}>* '
+                f'Дата в запросе *<{message.text}>* '
                 'не найдена, напоминание не записано'
                         )
             bot.send_message(message.chat.id,
@@ -861,8 +877,8 @@ def add_random_task(message):
         f'возложено на {message.from_user.first_name}'
     )
     date = datetime.strftime(dt.today() + timedelta(days=1), '%d.%m.%Y')
-
-    judgement = ParsingMessege(f'{date} {task}')
+    data = getter_data_for_parsing_messege(f'{date} {task}')
+    judgement = ParsingMessege(*data)
     judgement.add_todo(message.from_user.id)
 
     bot.send_message(
