@@ -113,7 +113,8 @@ class ScheduleMessage():
         p1.start()
 
 
-def getter_data_for_parsing_messege(message):
+def getter_data_for_parsing_messege(message)-> list[str]:
+    """Cоздаем список для класса."""
     type_note = 'todo'
 
     if re.search(r'\d+[./-]\d+[./-]\d+', message):
