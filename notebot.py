@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import difflib
 import os
+import pickle
 import re
 import sqlite3
 import sys
@@ -55,9 +56,6 @@ cur.executescript("""   CREATE TABLE IF NOT EXISTS users(
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         word TEXT,
                         answer TEXT);
-                    CREATE TABLE IF NOT EXISTS checktime(
-                    chtime INT PRIMARY KEY,
-                    test TEXT UNIQUE);
                     """)
 conn.commit()
 
@@ -114,7 +112,7 @@ class ScheduleMessage():
 
 
 def getter_data_for_parsing_messege(message) -> list[str]:
-    """Cоздаем список для класса."""
+    """Создаем список для класса."""
     type_note = 'todo'
 
     if re.search(r'\d+[./-]\d+[./-]\d+', message):
@@ -657,10 +655,10 @@ def add_notes(message):
 def del_note(message):
     """Удаление записи из БД."""
     try:
-        command_text = re.sub(r'/del ', '', message.text)
-        pars_mess = ParsingMessege(command_text)
+        data = getter_data_for_parsing_messege(message.text)
+        pars_mess = ParsingMessege(*data)
         date = pars_mess.date
-        task = pars_mess.massege
+        task = pars_mess.message
 
         if date is None:
             send_text = (
@@ -924,21 +922,28 @@ def text_ansvers(message):
     return False
 
 
+def read_file() -> float:
+    """Считываем время из файла для проверки."""
+    try:
+        with open(f'{PATH_BOT}/check_time.pickle', 'rb') as fb:
+            return pickle.load(fb)
+    except OSError:
+        return 0
+
+
+def write_file(check_time: float) -> None:
+    """Записываем текущее время в файл для проверки на следующем цикле."""
+    with open(f'{PATH_BOT}/check_time.pickle', 'wb') as fb:
+        pickle.dump(check_time, fb)
+
+
 def check_note_and_send_message():
     """Основной модуль оповещающий о собыниях в чатах."""
     # проверка на пропуск минут в случаях отказов оборудования
     cur_time_tup = time.mktime(datetime.now().replace(
         second=0, microsecond=0).timetuple())
 
-    cur.execute(""" SELECT chtime
-                    FROM checktime
-                ;""")
-    last_time_to_check = cur.fetchone()
-
-    if last_time_to_check is None:
-        last_time_to_check = 0
-    else:
-        last_time_to_check = last_time_to_check[0]
+    last_time_to_check = read_file()
 
     if cur_time_tup - 60 > last_time_to_check:
         hour_start = datetime.fromtimestamp(
@@ -949,9 +954,7 @@ def check_note_and_send_message():
         bot.send_message(ID_ADMIN,
                          f"пропуск врмени с {hour_start} до {hour_end}")
 
-    check_time = (cur_time_tup, 'ок')
-    cur.execute("""REPLACE INTO checktime VALUES(?, ?);""", check_time)
-    conn.commit()
+    write_file(cur_time_tup)
 
     # поиск в базе событий для вывода в текущую минуту
     date = datetime.strftime(dt.today(), '%d.%m.%Y')
