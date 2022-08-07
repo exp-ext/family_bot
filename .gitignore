@@ -2,7 +2,7 @@
 config.py
 data_for_notebot.db
 
-#temporary files
+# temporary files
 check_time.pickle
 
 # Byte-compiled / optimized / DLL files
