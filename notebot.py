@@ -61,7 +61,7 @@ conn.commit()
 
 
 class ParsingMessege:
-    """Разбираем сообщение на комплектующие."""
+    """Создаем объкт напоминания."""
     __slots__ = ('date', 'message', 'time', 'type_note')
 
     def __init__(self,
