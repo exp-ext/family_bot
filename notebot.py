@@ -58,6 +58,7 @@ cur.executescript("""   CREATE TABLE IF NOT EXISTS users(
                         answer TEXT);
                     """)
 conn.commit()
+conn.close()
 
 
 class ParsingMessege:
@@ -97,6 +98,7 @@ class ParsingMessege:
             new_tasks
             )
         conn.commit()
+        conn.close()
         return True
 
 
@@ -172,6 +174,7 @@ def replace_messege_id(user_id: int, messege_id: int, chat_id: int) -> None:
     new_request = (iddate, user_id, chat_id, messege_id)
     cur.execute("REPLACE INTO requests VALUES(?, ?, ?, ?);", new_request)
     conn.commit()
+    conn.close()
 
 
 @bot.message_handler(commands=['help'])
@@ -231,6 +234,7 @@ def help(message):
 
     cur.execute("""REPLACE INTO users VALUES(?, ?, ?);""", add_new_user)
     conn.commit()
+    conn.close()
 
 
 @bot.message_handler(content_types=['location'])
@@ -265,6 +269,7 @@ def location(message):
     geo = (iddate, message.from_user.id, lon, lat)
     cur.execute("""INSERT INTO geolocation VALUES(?, ?, ?, ?);""", geo)
     conn.commit()
+    conn.close()
 
     message_id = message.message_id
     bot.delete_message(message.chat.id, message_id)
@@ -1027,6 +1032,7 @@ def check_note_and_send_message():
         cur.execute("""DELETE FROM tasks WHERE id IN %(list)s ;""" %
                     {"list": tuple_del_id})
         conn.commit()
+        conn.close()
 
 
 check_note_and_send_message()
