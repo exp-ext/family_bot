@@ -1,6 +1,6 @@
 # confidecial
-config.py
-data_for_notebot.db
+/config.py
+/data_for_notebot.db
 
 # temporary files
 check_time.pickle
@@ -14,7 +14,7 @@ __pycache__/
 *.so
 
 # VS code
-.vscode/
+.vscode
 
 # Distribution / packaging
 .Python
