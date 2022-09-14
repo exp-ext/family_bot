@@ -1,4 +1,4 @@
-#!/bin/env python3
+#!/opt/bin python3
 # -*- coding: utf-8 -*-
 import difflib
 import os
@@ -31,7 +31,7 @@ conn = sqlite3.connect(
     f'{PATH_BOT}/data_for_notebot.db', check_same_thread=False)
 cur = conn.cursor()
 
-cur.executescript("""   
+cur.executescript("""
 CREATE TABLE IF NOT EXISTS users(
     userid INT PRIMARY KEY,
     fname TEXT,
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS requests(
     dateid INT PRIMARY KEY,
     userid INT UNIQUE,
     chatid INT,
-    messegeid INT    
+    messegeid INT
 );
 CREATE TABLE IF NOT EXISTS tasks(
     id INT PRIMARY KEY,
@@ -64,7 +64,6 @@ CREATE TABLE IF NOT EXISTS reactions(
 );
                     """)
 conn.commit()
-conn.close()
 
 
 class ParsingMessege:
@@ -104,7 +103,6 @@ class ParsingMessege:
             new_tasks
             )
         conn.commit()
-        conn.close()
         return True
 
 
@@ -180,7 +178,6 @@ def replace_messege_id(user_id: int, messege_id: int, chat_id: int) -> None:
     new_request = (iddate, user_id, chat_id, messege_id)
     cur.execute("REPLACE INTO requests VALUES(?, ?, ?, ?);", new_request)
     conn.commit()
-    conn.close()
 
 
 @bot.message_handler(commands=['help'])
@@ -240,7 +237,6 @@ def help(message):
 
     cur.execute("""REPLACE INTO users VALUES(?, ?, ?);""", add_new_user)
     conn.commit()
-    conn.close()
 
 
 @bot.message_handler(content_types=['location'])
@@ -275,7 +271,6 @@ def location(message):
     geo = (iddate, message.from_user.id, lon, lat)
     cur.execute("""INSERT INTO geolocation VALUES(?, ?, ?, ?);""", geo)
     conn.commit()
-    conn.close()
 
     message_id = message.message_id
     bot.delete_message(message.chat.id, message_id)
@@ -1038,7 +1033,6 @@ def check_note_and_send_message():
         cur.execute("""DELETE FROM tasks WHERE id IN %(list)s ;""" %
                     {"list": tuple_del_id})
         conn.commit()
-        conn.close()
 
 
 check_note_and_send_message()
