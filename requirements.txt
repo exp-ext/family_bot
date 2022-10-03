@@ -1,4 +1,3 @@
-#need install for project
 beautifulsoup4
 holidays
 pytz
