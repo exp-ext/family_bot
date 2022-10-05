@@ -107,7 +107,7 @@ def current_weather(message):
             "Сев-Зап"
         )
         wind_speed = int(data['wind']['speed'])
-        direction = (wind_speed + 22.5) // 45 % 8
+        direction = int((wind_speed + 22.5) // 45 % 8)
         pressure = round(int(data['main']['pressure']*0.750063755419211))
 
         weather = [

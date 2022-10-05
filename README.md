@@ -65,35 +65,18 @@
 
     opkg install python3-pip
 
-> устанавливаем curl:
+> устанавливаем curl и git:
 
     opkg install curl
+    opkg install git-http
 
-> Создаём необходимую папку:
+> клонируем репозитарий
 
-    mkdir /opt/usr/bot
+    git clone https://github.com/exp-ext/family_bot.git
 
-> переходим в нашу директорию:
+> открываем при помощи vim конфиг:
 
-    cd /opt/usr/bot
-
-> заливаем в неё файлы с githab, сразу делая их исполняемыми:
-
-    # копируйте и вводите в терминал все 5 строк поочерёдно
-    
-    $ curl -k -L https://raw.githubusercontent.com/exp-ext/family_bot/master/notebot.py -o notebot.py && chmod 755 notebot.py
-    
-    $ curl -k -L https://raw.githubusercontent.com/exp-ext/family_bot/master/config.py -o config.py && chmod 755 config.py
-    
-    $ curl -k -L https://raw.githubusercontent.com/exp-ext/family_bot/master/data_for_notebot.db -o data_for_notebot.db
-    
-    $ curl -k -L https://raw.githubusercontent.com/exp-ext/family_bot/master/requirements.txt -o requirements.txt
-
-    $ curl -k -L https://raw.githubusercontent.com/exp-ext/family_bot/master/botstart.sh -o botstart.sh && chmod 755 botstart.sh
-
-> в той же папке открываем при помощи vim конфиг:
-
-    vi config.py
+    vi /opt/usr/family_bot/data/config.py
 
 Нажимаем Insert для активации режима изменения и вписываем в него все ID полученные при регистрации ранее. Чтоб сохранить и выйти нужно нажать Esc и ввести команду :wq (она появится внизу)
 
@@ -115,7 +98,7 @@
 
 > и наконец запуск бота 🚀:
 
-    /opt/usr/bot/botstart.sh
+    /opt/usr/family_bot/botstart.sh
 
 ## License
 
