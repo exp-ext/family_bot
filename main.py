@@ -1,8 +1,6 @@
 #!/opt/bin python3
 # -*- coding: utf-8 -*-
-import os
 import pickle
-import sys
 import time
 from datetime import date as dt
 from datetime import datetime, timedelta
@@ -12,11 +10,10 @@ import holidays
 import pytz
 import schedule
 
-from data.config import CHAT_ID, ID_ADMIN, bot
-from data.main import callback_inline, help, help_locatoin, location
-from data.sql import conn, cur
-
-PATH_BOT = f'{os.path.dirname(sys.argv[0])}'
+from data.menu import callback_inline, help, help_location, location
+from data.methods import send_message
+from data.model import make_request
+from settings import CHAT_ID, ID_ADMIN, PATH_BOT, bot
 
 
 class ScheduleMessage():
@@ -64,7 +61,7 @@ def check_note_and_send_message():
             cur_time_tup
         ).strftime('%H:%M')
 
-        bot.send_message(
+        send_message(
             ID_ADMIN,
             f"пропуск врмени с {hour_start} до {hour_end}"
         )
@@ -79,13 +76,16 @@ def check_note_and_send_message():
         date_today + timedelta(days=7),
         '%d.%m'
     )
-    cur.execute(
+
+    tasks = make_request(
+        'execute',
         """ SELECT date, time, type, task, id
             FROM tasks
             WHERE date=? OR date=? OR date=?
-            ;""", (date_today_str, date_birthday, date_delta_birth)
+            ;""",
+        (date_today_str, date_birthday, date_delta_birth),
+        fetch='all'
     )
-    tasks = cur.fetchall()
 
     del_id = []
     time_zone = pytz.timezone('Europe/Moscow')
@@ -104,7 +104,7 @@ def check_note_and_send_message():
                 send_flag = True
                 del_id.append(item[4])
         if send_flag:
-            bot.send_message(CHAT_ID, text_note, parse_mode='Markdown')
+            send_message(CHAT_ID, text_note, parse_mode='Markdown')
 
     cur_time_msk = datetime.strftime(datetime.now(time_zone), '%H:%M')
 
@@ -132,19 +132,19 @@ def check_note_and_send_message():
                     text_birthday_ahead += f'- {item[3]}\n'
 
         if send_flag_note:
-            bot.send_message(
+            send_message(
                 CHAT_ID,
                 text_note,
                 parse_mode='Markdown'
             )
         if send_flag_birth:
-            bot.send_message(
+            send_message(
                 CHAT_ID,
                 text_birthday,
                 parse_mode='Markdown'
             )
         if send_flag_birth_ahead:
-            bot.send_message(
+            send_message(
                 CHAT_ID,
                 text_birthday_ahead,
                 parse_mode='Markdown'
@@ -153,18 +153,19 @@ def check_note_and_send_message():
         ru_holidays = holidays.RU()
         if date_today in ru_holidays:
             hd = ru_holidays.get(date_today)
-            bot.send_message(
+            send_message(
                 CHAT_ID,
                 f'Господа, поздравляю вас с праздником - {hd}'
             )
 
     if len(del_id) > 0:
         tuple_del_id = tuple(del_id) if len(del_id) > 1 else f'({del_id[0]})'
-        cur.execute(
+
+        make_request(
+            'execute',
             """DELETE FROM tasks WHERE id IN %(list)s ;""" %
             {"list": tuple_del_id}
         )
-        conn.commit()
 
 
 @bot.message_handler(commands=['help'])
@@ -177,9 +178,9 @@ def handler_location(message):
     location(message)
 
 
-@bot.message_handler(commands=['help_locatoin'])
+@bot.message_handler(commands=['help_location'])
 def handler_help_location(message):
-    help_locatoin(message)
+    help_location(message)
 
 
 @bot.callback_query_handler(func=lambda call: True)
@@ -187,14 +188,15 @@ def handler_callback(call):
     callback_inline(call)
 
 
-check_note_and_send_message()
-
-schedule.every(1).minutes.do(check_note_and_send_message)
-
-
-if __name__ == '__main__':
+def main():
+    schedule.every(1).minutes.do(check_note_and_send_message)
     ScheduleMessage.start_process()
     try:
+        bot.delete_webhook()
         bot.polling(none_stop=True)
     except Exception as exc:
         bot.send_message(ID_ADMIN, f'ошибочка polling - {exc}')
+
+
+if __name__ == '__main__':
+    main()

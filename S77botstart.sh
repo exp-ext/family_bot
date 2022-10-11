@@ -2,7 +2,7 @@
 
 PATH=/opt/bin:/opt/sbin:/sbin:/bin:/usr/sbin:/usr/bin:/opt/usr/bot:/opt/root:/opt/lib:/opt/lib/python3.10:
 
-PYTHON="/opt/bin/python3 /opt/usr/family_bot/startbot.py"
+PYTHON="/opt/bin/python3 /opt/usr/family_bot/main.py"
 
 notebot_status ()
 {
