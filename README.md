@@ -2,7 +2,7 @@
 
 ***
 <p align="center">
-<img src="https://github.com/exp-ext/GitProjects/blob/main/1364073016_25.jpg" width="200">
+<img src="https://github.com/exp-ext/GitProjects/blob/main/1364073016_25.jpg" width="600">
 </p>
 
 ## Он уʍᴇᴇᴛ
