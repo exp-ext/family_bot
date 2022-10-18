@@ -1,5 +1,6 @@
 #!/opt/bin python3
 # -*- coding: utf-8 -*-
+import pickle
 import time
 from datetime import date as dt
 from datetime import datetime, timedelta
@@ -11,7 +12,7 @@ import pytz
 from data.menu import callback_inline, help, help_location, location
 from data.methods import send_message
 from data.model import make_request
-from settings import CHAT_ID, ID_ADMIN, bot
+from settings import CHAT_ID, ID_ADMIN, bot, PATH_BOT
 
 LAST_TIME = 0
 
@@ -36,11 +37,25 @@ class ScheduleMessage():
         p1.start()
 
 
+def read_file() -> float:
+    """Считываем время из файла для проверки."""
+    try:
+        with open(f'{PATH_BOT}/check_time.pickle', 'rb') as fb:
+            return pickle.load(fb)
+    except OSError:
+        return 0
+
+
+def write_file(check_time: float) -> None:
+    """Записываем текущее время в файл для проверки на следующем цикле."""
+    with open(f'{PATH_BOT}/check_time.pickle', 'wb') as fb:
+        pickle.dump(check_time, fb)
+
+
 def check_note_and_send_message(cur_time):
     """Основной модуль оповещающий о событиях в чатах."""
     # проверка на пропуск минут в случаях отказов оборудования
-    global LAST_TIME
-    last_time_to_check = LAST_TIME
+    last_time_to_check = read_file()
 
     if cur_time - 60 > last_time_to_check:
         hour_start = datetime.fromtimestamp(
@@ -53,7 +68,7 @@ def check_note_and_send_message(cur_time):
             ID_ADMIN,
             f"пропуск времени с {hour_start} до {hour_end}"
         )
-    LAST_TIME = cur_time
+    write_file(cur_time)
 
     # поиск в базе событий для вывода в текущую минуту
     date_today = dt.today()

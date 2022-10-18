@@ -1,4 +1,5 @@
 import os
+import sys
 
 from telebot import TeleBot
 
@@ -14,5 +15,7 @@ YANDEX_GEO_API = os.getenv('YANDEX_GEO_API')
 ID_CHILDREN = list(os.getenv('ID_CHILDREN').split())
 
 ID_ADMIN = os.getenv('ID_ADMIN')
+
+PATH_BOT = f'{os.path.dirname(sys.argv[0])}'
 
 bot = TeleBot(TOKEN)
